@@ -1,0 +1,69 @@
+' generate png file using:
+' java -jar plantuml.jar localization_map.puml
+' just update plantuml.jar with actual location
+
+@startuml
+
+package "Physical Vehicle" {
+    [LiDAR] as Li #LightGreen
+    [GNSS/IMU] as GI #LightGreen
+    [Vehicle Dynamics] as VD #LightGreen
+}
+
+package "car_ros" {
+    package "Drivers" {
+        [LiDAR Driver] as LD #Violet
+        [Novatel Driver] as ND #Violet
+    }
+
+    package "tf tree" {
+        [Static Vehicle Transforms] as SVT #LightBlue
+        [Current Vehicle Transform] as CVT #LightBlue
+    }
+
+    package "Localization Node" {
+        package "diviner" as DM #Orange {
+            [Aligner] as AL #Yellow
+            [Diviner] as DI #Yellow
+            [Deskewer] as DE #Yellow
+            [Filter] as FI #Yellow
+            [Map] as MA #Yellow
+            [Velocity Estimator] as VE #Yellow
+        }
+        [Main file] as MAIN
+        [Launch file] as LF
+        [Localization Node] as LN
+    }
+
+    package "Map TF Package" {
+        [Map TF Node] as MTN #LightSteelBlue
+    }
+}
+
+AL --> DI
+DE --> DI
+FI --> DI
+MA --> DI
+VE --> DI
+MA <--> AL
+
+LF --> MAIN : Parameters
+
+' Lidar Sensor Tree
+Li --> LD : UDP Packets
+LD --> LN : Point Cloud
+
+GI --> ND : UDP Packets
+
+VD --> LN : Wheel ticks
+ND --> LN : GPS and IMU
+ND --> MTN
+MAIN --> LN
+LN <--> DI : ROS Information\n and Interface Setup
+
+' Transforms
+SVT --> LN
+LN --> CVT
+MTN --> LN
+
+@enduml 

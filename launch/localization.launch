@@ -1,0 +1,96 @@
+<launch>
+
+    <!-- Topics -->
+    <arg name="lidar_topic" default="/cepton2/points_221339"/>
+    <arg name="wheel_tick_topic" default="/yes"/>
+    <arg name="gnss_topic" default="/novatel/oem7/odom"/>
+    <arg name="map_tf_topic" default="/vehicle_pose"/>
+
+    <!-- Timers -->
+    <arg name="diviner_pub_frequency_hz" default="20.0"/>
+
+    <!-- Running State -->
+    <arg name="running_state" default="localization"/>
+    <arg name="debug" default="true"/>
+
+    <!-- Diviner -->
+    <arg name="diviner_debug" default="true"/>
+
+    <!-- Aligners -->
+    <arg name="aligner" default="pclaligner"/>
+    <arg name="max_num_iterations" default="500"/>
+    <arg name="convergence_criterion" default="0.0001"/>
+    <arg name="aligner_debug" default="true"/>
+
+    <!-- Deskewers -->
+    <arg name="deskewer" default="exampledeskewer"/>
+    <arg name="deskewer_debug" default="true"/>
+    
+    <!-- Filters -->
+    <arg name="leaf_size" default="[0.1, 1.5]"/>
+    <arg name="filter" default="voxelfilter"/>
+    <arg name="filter_debug" default="true"/>
+    
+    <!-- Mappers -->
+    <arg name="max_distance" default="30"/>
+    <arg name="max_points_per_voxel" value="20"/>
+    <arg name="map" default="octreemap"/>
+    <arg name="map_debug" default="true"/>
+    
+    <!-- Vestimators -->
+    <arg name="vestimator" default="constant"/>
+    <arg name="vestimator_debug" default="true"/>
+
+    <!-- Utils -->
+    <arg name="max_sync_err" default="0.5"/>
+    <arg name="point_type" default="pointxyzi"/>
+    <arg name="converter_debug" default="false"/>
+
+    <node name="localization_node" pkg="localization" type="localization_node" respawn="false" output="screen" cwd="ROS_HOME">
+        
+        <!-- Topics -->
+        <param name="lidar_topic" value="$(arg lidar_topic)"/>
+        <!-- <param name="wheel_tick_topic" value="$(arg wheel_tick_topic)"/> -->
+        <param name="gnss_topic" value="$(arg gnss_topic)"/>
+        <param name="map_tf_topic" value="$(arg map_tf_topic)"/>
+
+        <!-- Timers -->
+        <param name="diviner_pub_frequency_hz" value="$(arg diviner_pub_frequency_hz)"/>
+
+        <!-- Running State -->
+        <param name="running_state" value="$(arg running_state)"/>
+        <param name="debug" value="$(arg debug)"/>
+        
+        <!-- Diviner -->
+        <param name="diviner_debug" value="$(arg diviner_debug)"/>
+
+        <!-- Aligners -->
+        <param name="aligner" value="$(arg aligner)"/>
+        <param name="max_num_iterations" value="$(arg max_num_iterations)"/>
+        <param name="convergence_criterion" value="$(arg convergence_criterion)"/>
+        <param name="aligner_debug" value="$(arg aligner_debug)"/>
+
+        <!-- Deskewers -->
+        <param name="deskewer" value="$(arg deskewer)"/>
+        <param name="deskewer_debug" value="$(arg deskewer_debug)"/>
+
+        <!-- Filters -->
+        <rosparam param="leaf_size" subst_value="true">$(arg leaf_size)</rosparam>
+        <param name="max_points_per_voxel" value="$(arg max_points_per_voxel)"/>
+        <param name="filter" value="$(arg filter)"/>
+        <param name="filter_debug" value="$(arg filter_debug)"/>
+        
+        <!-- Mappers -->
+        <param name="map" value="$(arg map)"/>
+        <param name="map_debug" value="$(arg map_debug)"/>
+
+        <!-- Vestimators -->
+        <param name="vestimator" value="$(arg vestimator)"/>
+        <param name="vestimator_debug" value="$(arg vestimator_debug)"/>
+
+        <!-- Utils -->
+        <param name="max_sync_err" value="$(arg max_sync_err)"/>
+        <param name="point_type" value="$(arg point_type)"/>
+        <param name="converter_debug" value="$(arg converter_debug)"/>
+    </node>
+</launch>

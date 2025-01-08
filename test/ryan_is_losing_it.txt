@@ -1,0 +1,24 @@
+root@e880566543fd:/localization_ws/bags/intersection# rostopic echo -n 1 /cepton2/points_221339 | head
+header: 
+  seq: 0
+  stamp: 
+    secs: 1513
+    nsecs:  42202000
+  frame_id: "cepton2"
+height: 1
+width: 34013
+fields: 
+  - 
+root@e880566543fd:/localization_ws/bags/intersection# rostopic echo -n 1 /novatel/oem7/odom | head
+header: 
+  seq: 2476
+  stamp: 
+    secs: 1717524180
+    nsecs: 708785850
+  frame_id: "odom"
+child_frame_id: "base_link"
+pose: 
+  pose: 
+    position: 
+
+rostopic echo -n 1 /cepton2/points_221339 | head && rostopic echo -n 1 /novatel/oem7/odom | head

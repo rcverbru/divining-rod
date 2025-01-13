@@ -187,7 +187,4 @@ __TF Frames__
 | Vehicle Base Link |  |
 
 ## Current Work ##
-Look here to see current progress, future work needed, and other various things: [OpenProject Workpackages](http://141.219.248.68/projects/perception-1/work_packages?query_id=295)
-
-## How dead is Ryan? ##
-Check on Ryan [here](http://141.219.248.68/projects/perception-1/cost_reports/23)
+__Currently unavailable for non-team related viewers.__ Look here to see current progress, future work needed, and other various things: [OpenProject Workpackages](http://141.219.248.68/projects/perception-1/work_packages?query_id=295)

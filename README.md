@@ -1,3 +1,9 @@
+# Repo Under Construction #
+
+This repo is still under construction and is not ready for use. Updates will happen periodically as changes are made. Please wait for updates to be made. If you'd like to see the original code, please see the original [Kiss-ICP repo](https://github.com/PRBonn/kiss-icp/tree/main), and its paper.
+
+If you have any questions please reach out as I'd be happy to help. Thanks! :)
+
 # Localization Node #
 
 This repo contains the localization system and all of its code.

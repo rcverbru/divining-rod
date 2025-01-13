@@ -35,11 +35,38 @@ pcl::PointCloud<diviner::PointStamped>::Ptr OctreeMap::get_data()
 {
     pcl::PointCloud<pcl::PointXYZI>::Ptr data_cloud_(new pcl::PointCloud<pcl::PointXYZI>);
 
-    std::cout << "before indicies loop" << std::endl;
+    std::cout << "Before indicies loop" << std::endl;
+    std::cout << "Test map: " << local_map_octree->getResolution() << std::endl;
+    std::cout << local_map_octree->getIndices() << std::endl;
+    
+    // pcl::uindex_t
+    int num_occ_vox = local_map_octree->getOccupiedVoxelCenters(auto &test);
+    // std::cout << test << std::endl;
+    
 
-    for(auto &point : local_map_octree->getIndices())
+    // Eigen::Vector3f voxel_min, voxel_max;
+    // local_map_octree->getVoxelBounds(*local_map_octree->getIndices(), voxel_min, voxel_max);
+    // std::cout << "min: " << voxel_min << " max: " << voxel_max << std::endl;
+
+    // pcl::octree::OctreePointCloudVoxelCentroid<pcl::PointXYZ>::Iterator tree_it;
+    // pcl::octree::OctreePointCloudVoxelCentroid<pcl::PointXYZ>::Iterator tree_it_end = local_map_octree->end();
+
+    // pcl::PointXYZ pt;
+
+    // for (tree_it = local_map_octree.begin(depth); tree_it!=tree_it_end; ++tree_it)
+    // {
+    //   Eigen::Vector3f voxel_min, voxel_max;
+    //   local_map_octree->getVoxelBounds(tree_it, voxel_min, voxel_max);
+
+    //   pt.x = (voxel_min.x() + voxel_max.x()) / 2.0f;
+    //   pt.y = (voxel_min.y() + voxel_max.y()) / 2.0f;
+    //   pt.z = (voxel_min.z() + voxel_max.z()) / 2.0f;
+    //   displayCloud->points.push_back(pt);
+    // }
+
+    for(auto &point : *local_map_octree->getIndices())
     {
-        //
+        // 
         std::cout << "In get indicies loop" << std::endl;
     }
 

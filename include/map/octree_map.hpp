@@ -4,6 +4,13 @@
 #include <diviner/utils/types.hpp>
 #include <diviner/i_map.hpp>
 
+// #include <pcl/visualization/pcl_visualizer.h>
+// #include <pcl/visualization/point_cloud_handlers.h>
+// #include <pcl/visualization/common/common.h>
+
+// #include <pcl/octree/octree.h>
+// #include <pcl/octree/octree_impl.h>
+
 #include <pcl/octree/octree_pointcloud.h>
 
 namespace diviner
@@ -15,7 +22,7 @@ struct OctreeMapParams
     double octree_resolution = 1;
     double max_distance = 40;
     bool output_map = false;
-    bool debug = false;
+    bool debug = true;
 };
 
 class OctreeMap : public IMap

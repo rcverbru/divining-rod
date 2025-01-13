@@ -59,7 +59,9 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
 
     int num_points = cloud->size();
     std::cout << "- diviner: num points in point cloud: " << num_points << std::endl;
+    
     // First downsampling
+    
     filter_->filter(cloud);
 
     num_points = cloud->size();
@@ -91,6 +93,7 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
         std::cout << "- diviner: Skipping aligner->align() due to nothing to align" << std::endl;
     }
 
+    // set first filter
     filter_->filter(cloud);
 
     // Add points to map

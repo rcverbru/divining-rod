@@ -50,7 +50,7 @@ class PclAligner : public IAligner
          * @param veh_pose pose input from gps (if running)
          * @return maybe pose list?
          */
-        void initialize(geometry_msgs::PoseStamped veh_pose) override;
+        void initialize(std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> veh_pose) override;
 
         /**
          * Alignment function for the aligner interface.

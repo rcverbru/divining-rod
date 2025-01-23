@@ -11,11 +11,19 @@ void OctreeMap::add_cloud(const pcl::PointCloud<diviner::PointStamped>::Ptr poin
         std::cout << "  - map: Adding point cloud to map " << std::endl;
     // }
 
+    // std::cout << "  - map: " << local_map_octree->octreeCanResize() << std::endl;
+
     std::cout << "  - map: Number of points in pointcloud: " << point_cloud_->size() << std::endl;
     std::cout << "  - map: Number of voxels in map before adding: " << local_map_octree->getLeafCount() << std::endl;
 
     local_map_octree->setInputCloud(point_cloud_);
     local_map_octree->addPointsFromInputCloud();
+
+    for(auto point : *point_cloud_)
+    {
+        local_map_pointcloud->push_back(point);
+    }
+    std::cout << "Num points in map cloud: " << local_map_pointcloud->size() << std::endl;
 
     std::cout << "  - map: Number of voxels in octree " << local_map_octree->getLeafCount() << std::endl;
 
@@ -35,14 +43,43 @@ pcl::PointCloud<diviner::PointStamped>::Ptr OctreeMap::get_data()
 {
     pcl::PointCloud<pcl::PointXYZI>::Ptr data_cloud_(new pcl::PointCloud<pcl::PointXYZI>);
 
-    std::cout << "Before indicies loop" << std::endl;
-    std::cout << "Test map: " << local_map_octree->getResolution() << std::endl;
-    std::cout << local_map_octree->getIndices() << std::endl;
+    std::cout << "  - map: Before indicies loop" << std::endl;
+    std::cout << "  - map: Test map: " << local_map_octree->getResolution() << std::endl;
     
-    // pcl::uindex_t
-    int num_occ_vox = local_map_octree->getOccupiedVoxelCenters(auto &test);
+    if (!local_map_octree) {
+        std::cout << "  - map: local_map_octree is null in get_data()" << std::endl;
+        return nullptr;
+    }
+
+
+    // std::cout << local_map_octree->getIndices() << std::endl;
+    std::cout << "Leaf count: " << local_map_octree->getLeafCount() << std::endl;
+
+    std::vector<diviner::PointStamped, Eigen::aligned_allocator<diviner::PointStamped>> voxel_centers;
+    auto index_stuff = local_map_octree->getOccupiedVoxelCenters(voxel_centers);
+
+    for (auto voxel : voxel_centers)
+    {
+        // need to get each point from the voxels
+        // voxel is the current voxel center (use x,y,z to get the location)
+        // local_map_octree.
+    }
+    
+    std::cout << "Number of Voxel Centers: " << index_stuff << std::endl;
+    // std::cout << "Voxel centers: " << voxel_centers << std::endl;
+    
+    // Retrieve indices and check validity
+    // pcl::IndicesConstPtr indices = local_map_octree->getIndices();
+    // if (!indices || indices->empty()) {
+    //     std::cout << "  - map: local_map_octree->getIndices() returned null or empty" << std::endl;
+    //     return data_cloud_;
+    // }
+
+    std::cout << local_map_octree->getTreeDepth() << std::endl;
+
+    // pcl::octree::AlignedPointTVector voxel_center_list_arg;
+    // int num_occ_vox = *local_map_octree->getOccupiedVoxelCenters(&voxel_center_list_arg);
     // std::cout << test << std::endl;
-    
 
     // Eigen::Vector3f voxel_min, voxel_max;
     // local_map_octree->getVoxelBounds(*local_map_octree->getIndices(), voxel_min, voxel_max);
@@ -64,12 +101,6 @@ pcl::PointCloud<diviner::PointStamped>::Ptr OctreeMap::get_data()
     //   displayCloud->points.push_back(pt);
     // }
 
-    for(auto &point : *local_map_octree->getIndices())
-    {
-        // 
-        std::cout << "In get indicies loop" << std::endl;
-    }
-
     // Create a single point
     diviner::PointStamped point;
     point.x = 1.0;  // Set the x-coordinate
@@ -80,7 +111,7 @@ pcl::PointCloud<diviner::PointStamped>::Ptr OctreeMap::get_data()
     // Add the point to the cloud
     data_cloud_->points.push_back(point);
 
-    return data_cloud_;
+    return local_map_pointcloud;
 }
 
 void OctreeMap::clear_map()

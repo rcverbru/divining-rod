@@ -32,9 +32,9 @@ class IAligner
          * it checks to see if we have a gps position and adds the first location
          * to our pose lists.
          * @param veh_pose pose input from gps (if running)
-         * @return maybe pose list?
+         * @return initial pose list
          */
-        virtual void initialize(geometry_msgs::PoseStamped veh_pose) = 0;
+        virtual void initialize(std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> veh_pose) = 0;
 
         /**
          * Aligns the current scan with the local map

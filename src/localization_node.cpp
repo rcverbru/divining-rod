@@ -270,6 +270,7 @@ LocalizationNode::LocalizationNode(
         // Set current scan
         pcl::PointCloud<diviner::PointStamped>::Ptr current_scan_ = 
         pcl::PointCloud<diviner::PointStamped>::Ptr(new pcl::PointCloud<diviner::PointStamped>);
+        veh_pose = std::make_shared<std::vector<geometry_msgs::PointStamped>>();
     }
 
     // Create MsgConverter
@@ -324,12 +325,12 @@ void LocalizationNode::transform_cb(const ros::TimerEvent & event)
         vehicle_pose_.pose.orientation = curr_transform_stamped_.transform.rotation;
 
         std::cout << vehicle_poses_queue_.size() << std::endl;
-        if(vehicle_poses_queue_.size() == 0u)
-        {
-            // If pose queue empty add two extra poses
-            vehicle_poses_queue_.push(vehicle_pose_);
-            vehicle_poses_queue_.push(vehicle_pose_);
-        }
+        // if(vehicle_poses_queue_.size() == 0u)
+        // {
+        //     // If pose queue empty add two extra poses
+        //     vehicle_poses_queue_.push(vehicle_pose_);
+        //     vehicle_poses_queue_.push(vehicle_pose_);
+        // }
         
         vehicle_poses_queue_.push(vehicle_pose_);
         std::cout << vehicle_poses_queue_.size() << std::endl; // should equal to 3 after this
@@ -389,98 +390,6 @@ void LocalizationNode::diviner_cb(const ros::TimerEvent & event)
         std::cout << "diviner_cb: Need to wait for new scan..." << std::endl;
     }
     
-    // if(map_ != nullptr)
-    // {
-    //     bool cloud_synced;
-    //     std::cout << "diviner_cb: Num poses in queue: " << vehicle_poses_queue_.size() << std::endl;
-    //     // cloud_synced = syncer_->sync(current_scan_, vehicle_poses_queue_);
-
-    //     if(vehicle_poses_queue_.size() > 0)
-    //     {
-
-    //         if(current_scan_ != nullptr)
-    //         {
-    //             // std::cout << "diviner_cb: Inside of scan if" << std::endl;
-    //             // while(!cloud_synced)
-    //             // {
-    //                 std::cout << "diviner_cb: Inside of sync loop" << std::endl;
-                    
-    //                 // need to also add imu sync...
-    //                 diviner::IMUinfo temp_imu;
-    //                 // temp_imu = 
-
-    //                 auto vehicle_pose = vehicle_poses_queue_.front();
-    //                 auto scan = *current_scan_;
-
-    //                 std::cout << current_scan_->header.stamp << std::endl;
-    //                 std::cout << (vehicle_pose.header.stamp).toNSec() << std::endl;
-
-    //                 auto scan_time_stamp = pclToRosTime(scan.header.stamp);
-
-    //                 std::cout << "diviner_cb: scan time in us: " << scan_time_stamp << std::endl;
-    //                 std::cout << "diviner_cb: pose time in us: " << vehicle_pose.header.stamp << std::endl;
-    //                 std::cout << "diviner_cb: imu time in us: " << temp_imu.stamp << std::endl;
-
-    //                 float time_dif = (scan_time_stamp - vehicle_pose.header.stamp).toSec();
-                    
-    //                 // if(time_dif < ln_params_.max_sync_err && time_dif > -ln_params_.max_sync_err)
-    //                 // {
-    //                     std::cout << "diviner_cb: Current scan stamp: " << scan_time_stamp << std::endl;
-    //                     std::cout << "diviner_cb: Current pose stamp: " << vehicle_pose.header.stamp << std::endl;
-                        
-    //                     // Current vehicle pose is within 
-    //                     // cloud_synced = true;
-    //                     std::cout << "diviner_cb: vector size: " << veh_pose.size() << std::endl;
-    //                     if(veh_pose.size() == 0)
-    //                     {
-    //                         // Adding 2 extra points to assume start = 0 velocity
-    //                         veh_pose.emplace(veh_pose.begin(), vehicle_poses_queue_.front());
-    //                         veh_pose.emplace(veh_pose.begin(), vehicle_poses_queue_.front());
-    //                     }
-                       
-    //                     // Place new pose at index 0 and then remove the oldest pose
-    //                     veh_pose.emplace(veh_pose.begin(), vehicle_poses_queue_.front());
-    //                     std::cout << "diviner_cb: Added pose to vector from queue. " << vehicle_poses_queue_.size() << std::endl;
-    //                     vehicle_poses_queue_.pop();
-    //                     std::cout << "diviner_cb: Removed 1 pose from queue. Current size: " << vehicle_poses_queue_.size() << std::endl;
-                        
-    //                     if(veh_pose.size() == 4)
-    //                     {
-    //                         veh_pose.pop_back();
-    //                         std::cout << "diviner_cb: removing 1 pose from pose vector... " << std::endl;
-    //                     }
-
-    //                     std::cout << "diviner_cb: Num poses in vector: " << veh_pose.size() << std::endl;
-    //                     // might need to move this somewhere else depending how well this works...
-    //                     std::cout << "Starting Diviner Step." << std::endl;
-    //                     diviner_->step(current_scan_, world_to_map_, cepton_to_vehicle_, veh_pose);
-    //                 // }
-    //                 // else
-    //                 // {
-    //                 //     // remove old vehicle poses
-    //                 //     std::cout << "diviner_cb: Pose is too old, Deleting pose and trying next one." << std::endl;
-    //                 //     vehicle_poses_queue_.pop();
-    //                 // }
-
-    //             // }
-                
-    //         }
-    //         else
-    //         {
-    //             std::cout << "diviner_cb: Need to wait for new scan..." << std::endl;
-    //         }
-    //     }
-    //     else
-    //     {
-    //         std::cout << "diviner_cb: Need to wait for poses..." << std::endl;
-    //     }
-    // }
-    // else
-    // {
-    //     ROS_ERROR("diviner_cb: No map! Need to set map param!");
-
-    // }
-    
     diviner_mtx_.unlock();
 }
 
@@ -488,9 +397,6 @@ void LocalizationNode::lidar_cb(const sensor_msgs::PointCloud2ConstPtr input_clo
 {
     // add mutex for data
     lidar_mtx_.lock();
-
-    // pcl::PointCloud<diviner::PointStamped>::Ptr current_scan(new pcl::PointCloud<diviner::PointStamped>);
-    // pcl::fromROSMsg(*input_cloud, *current_scan);
 
     if(ln_params_.debug)
     {
@@ -551,12 +457,13 @@ void LocalizationNode::gnss_cb(const diviner::GnssType gnss_pose)
         std::cout << "- gnss_cb: number of queued poses: " << vehicle_poses_queue_.size() << std::endl;
     }
 
-    if(vehicle_poses_queue_.size() == 0u)
-    {
-        // If pose queue empty add two extra poses
-        vehicle_poses_queue_.push(map_vehicle_pose);
-        vehicle_poses_queue_.push(map_vehicle_pose);
-    }
+    // if(vehicle_poses_queue_.size() == 0u)
+    // {
+    //     // If pose queue empty add two extra poses
+    //     vehicle_poses_queue_.push(map_vehicle_pose);
+    //     vehicle_poses_queue_.push(map_vehicle_pose);
+    // }
+
     // add to poses queue
     vehicle_poses_queue_.push(map_vehicle_pose);
     

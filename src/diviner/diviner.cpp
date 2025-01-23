@@ -5,7 +5,7 @@
 namespace diviner
 {
 
-void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_msgs::TransformStamped gnss_to_map_, geometry_msgs::TransformStamped cloud_to_vehicle, std::vector<geometry_msgs::PoseStamped> veh_pose)
+void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_msgs::TransformStamped gnss_to_map_, geometry_msgs::TransformStamped cloud_to_vehicle, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> veh_pose)
 {
     if(debug_)
     {
@@ -15,20 +15,20 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
     {
         // Start mapper location
         geometry_msgs::PoseStamped holder;
-        aligner_->initialize(holder);
+        aligner_->initialize(veh_pose);
     }
 
     if(debug_)
     {
         //
-        std::cout << "- diviner: number of poses: " << veh_pose.size() << std::endl;
+        std::cout << "- diviner: number of poses: " << veh_pose->size() << std::endl;
         // std::cout << "Current Transform:" << std::endl;
         // std::cout << transform;
     }
 
-    if(veh_pose.size() == 3)
+    if(veh_pose->size() == 3)
     {
-        vestimator_->estimate(velocities, gnss_to_map_, veh_pose);
+        vestimator_->estimate(velocities, gnss_to_map_, *veh_pose);
 
         if(debug_)
         {
@@ -37,7 +37,7 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
     }
     else
     {
-        std::cout << "- diviner: Need to wait for " << 3 - veh_pose.size() << " more iterations before estimating velocity." << std::endl;
+        std::cout << "- diviner: Need to wait for " << 3 - veh_pose->size() << " more iterations before estimating velocity." << std::endl;
     }
     // vestimator_->publish_transform();
 

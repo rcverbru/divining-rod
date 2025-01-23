@@ -12,6 +12,7 @@
 // #include <pcl/octree/octree_impl.h>
 
 #include <pcl/octree/octree_pointcloud.h>
+#include <pcl/octree/octree_search.h>
 
 namespace diviner
 {
@@ -33,6 +34,9 @@ class OctreeMap : public IMap
         params_(params.child_params){
 
             local_map_octree = boost::make_shared<pcl::octree::OctreePointCloud<diviner::PointStamped>>(params_.octree_resolution);
+            local_map_pointcloud = boost::make_shared<pcl::PointCloud<diviner::PointStamped>>();
+            // indices_list = boost::make_shared<pcl::IndicesConstPtr>();
+
             // LeafContainer = 
             // BranchContainer = 
             // local_map_octree->setTreeDepth(params_.octree_depth);
@@ -68,9 +72,15 @@ class OctreeMap : public IMap
     private:
         OctreeMapParams params_;
         
-        pcl::IndicesPtr test_indices = boost::make_shared<std::vector<int>>();
+        // pcl::IndicesPtr test_indices = boost::make_shared<std::vector<int>>();
 
         pcl::octree::OctreePointCloud<diviner::PointStamped>::Ptr local_map_octree;
+        pcl::PointCloud<diviner::PointStamped>::Ptr local_map_pointcloud;
+        // pcl::IndicesConstPtr indices_list;
+        std::vector<diviner::PointStamped, Eigen::aligned_allocator<diviner::PointStamped>> voxel_centers;
+
+        pcl::IndicesConstPtr indices_test = boost::make_shared<std::vector<int>>();
+
 };
 
 }

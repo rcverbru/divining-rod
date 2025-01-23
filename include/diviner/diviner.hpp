@@ -51,7 +51,7 @@ class Diviner
          * 
          * @param cloud current point cloud 
          */
-        void step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_msgs::TransformStamped gnss_to_map_, geometry_msgs::TransformStamped cloud_to_vehicle, std::vector<geometry_msgs::PoseStamped> veh_pose);
+        void step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_msgs::TransformStamped gnss_to_map_, geometry_msgs::TransformStamped cloud_to_vehicle, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> veh_pose);
 
     private:
         std::shared_ptr<IAligner> aligner_;

@@ -3,31 +3,36 @@
 namespace diviner
 {
 
-void PclAligner::initialize(geometry_msgs::PoseStamped veh_pose)
+void PclAligner::initialize(std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> veh_pose)
 {
     // Initialization function for diviner first startup
     std::cout << "  - aligner: Inside aligner initialize function." << std::endl;
 
     if(false)
     {
-        updated_vehicle_position.push_back(veh_pose);
+        // std::cout << "  - aligner: Pulling GPS location." << std::endl;
+        // updated_vehicle_position.push_back(veh_pose);
+        // std::cout << "  - aligner: Added GPS pose to vehicle location vector." << std::endl;
+
     }
     else
     {
         std::cout << "  - aligner: Setting initial point." << std::endl;
+        geometry_msgs::PoseStamped new_pose;
+
         // set beginning position to (0,0,0) and use as the beginning
-        veh_pose.pose.position.x = 0;
-        veh_pose.pose.position.y = 0;
-        veh_pose.pose.position.z = 0;
-        veh_pose.pose.orientation.x = 0;
-        veh_pose.pose.orientation.y = 0;
-        veh_pose.pose.orientation.z = 0;
-        veh_pose.pose.orientation.w = 0;
+        new_pose.pose.position.x = 0;
+        new_pose.pose.position.y = 0;
+        new_pose.pose.position.z = 0;
+        new_pose.pose.orientation.x = 0;
+        new_pose.pose.orientation.y = 0;
+        new_pose.pose.orientation.z = 0;
+        new_pose.pose.orientation.w = 0;
 
-        veh_pose.header.stamp = ros::Time::now();
+        new_pose.header.stamp = ros::Time::now();
 
-        updated_vehicle_position.push_back(veh_pose);
-        std::cout << "  - aligner: Added pose to vehicle location vector." << std::endl;
+        veh_pose->push_back(new_pose);
+        std::cout << "  - aligner: Added 0 starting pose to vehicle location vector." << std::endl;
     }
 }
 

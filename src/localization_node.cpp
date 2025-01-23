@@ -270,7 +270,7 @@ LocalizationNode::LocalizationNode(
         // Set current scan
         pcl::PointCloud<diviner::PointStamped>::Ptr current_scan_ = 
         pcl::PointCloud<diviner::PointStamped>::Ptr(new pcl::PointCloud<diviner::PointStamped>);
-        veh_pose = std::make_shared<std::vector<geometry_msgs::PointStamped>>();
+        // veh_pose = std::make_shared<std::vector<geometry_msgs::PointStamped>>();
     }
 
     // Create MsgConverter

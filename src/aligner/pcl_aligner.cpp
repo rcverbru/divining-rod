@@ -10,10 +10,10 @@ void PclAligner::initialize(std::shared_ptr<std::vector<geometry_msgs::PoseStamp
 
     if(false)
     {
-        // std::cout << "  - aligner: Pulling GPS location." << std::endl;
-        // updated_vehicle_position.push_back(veh_pose);
-        // std::cout << "  - aligner: Added GPS pose to vehicle location vector." << std::endl;
-
+        std::cout << "  - aligner: Pulling GPS location." << std::endl;
+        // need to bring in gps_pose queue and slap that boy in here
+        //veh_pose.push_back(gps_pose);
+        std::cout << "  - aligner: Added GPS pose to vehicle location vector." << std::endl;
     }
     else
     {

@@ -252,7 +252,7 @@ class LocalizationNode
         void transform_cb(const ros::TimerEvent & event);
 
         // Diviner
-        std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> veh_pose;
+        std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> veh_pose = std::make_shared<std::vector<geometry_msgs::PoseStamped>>();
         std::vector<diviner::IMUinfo> imu_vec;
         void diviner_cb(const ros::TimerEvent & event);
 

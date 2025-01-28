@@ -12,6 +12,7 @@ namespace diviner
 struct SwitcherParams
 {
     //
+    bool debug=false;
 };
 
 class Switcher
@@ -21,7 +22,7 @@ class Switcher
         ~Switcher() = default;
         
         // lovely gps checker. if shits brok we hope this no brok
-        void check_gps_status();
+        void check_status();
     private:
         SwitcherParams params_;
 };

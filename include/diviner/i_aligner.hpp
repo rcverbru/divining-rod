@@ -76,7 +76,7 @@ class IAligner
          * @param rotation_vector rotation vector from icp
          * @return maybe updated vehicle pose vector?
          */
-        virtual void update_curr_pose(const diviner::alignment vehicle_alignment) = 0;
+        virtual void update_curr_pose(const diviner::alignment vehicle_alignment, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> updated_vehicle_position) = 0;
 
     private:
         IAlignerParams params_;

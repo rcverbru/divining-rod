@@ -56,6 +56,7 @@ LocalizationNode::LocalizationNode(
         }
 
         example_aligner_params_.parent_params.debug = ln_params_.debug;
+        example_aligner_params_.child_params.debug = ln_params_.aligner_debug;
         aligner_ = std::make_shared<diviner::ExampleAligner>(example_aligner_params_);
     }
     if(ln_params_.aligner == "pclaligner")
@@ -66,6 +67,7 @@ LocalizationNode::LocalizationNode(
         }
 
         pcl_aligner_params_.parent_params.debug = ln_params_.debug;
+        pcl_aligner_params_.child_params.debug = ln_params_.aligner_debug;
         aligner_ = std::make_shared<diviner::PclAligner>(pcl_aligner_params_);
     }
     else
@@ -82,11 +84,14 @@ LocalizationNode::LocalizationNode(
         }
 
         example_deskewer_params_.parent_params.debug = ln_params_.debug;
+        example_deskewer_params_.child_params.debug = ln_params_.deskewer_debug;
         deskewer_ = std::make_shared<diviner::ExampleDeskewer>(example_deskewer_params_);
     }
     // else if(ln_params_.deskewer == "standarddeskewer")
     // {
-    //     example_deskewer_params_.parent_params.debug = ln_params_.debug;
+    //     standard_deskewer_params_.parent_params.debug = ln_params_.debug;
+    //     standard_deskewer_params_.child_params.debug = ln_params_.deskewer_debug;
+
     //     deskewer_ = std::make_shared<diviner::StandardDeskewer>(standard_deskewer_params_);
     // }
     else
@@ -103,6 +108,7 @@ LocalizationNode::LocalizationNode(
         }
         
         example_filter_params_.parent_params.debug = ln_params_.debug;
+        example_filter_params_.child_params.debug = ln_params_.filter_debug;
         filter_ = std::make_shared<diviner::ExampleFilter>(example_filter_params_);
     }
     else if(ln_params_.filter == "voxelfilter")
@@ -113,6 +119,7 @@ LocalizationNode::LocalizationNode(
         }
 
         voxel_filter_params_.parent_params.debug = ln_params_.debug;
+        voxel_filter_params_.child_params.debug = ln_params_.filter_debug;
         voxel_filter_params_.child_params.leaf_size = ln_params_.leaf_size;
         filter_ = std::make_shared<diviner::VoxelFilter>(voxel_filter_params_);
     }
@@ -307,6 +314,9 @@ void LocalizationNode::update_transforms()
 {
     // pull in current transform and check switching status
     // output the lovely transform for the rest of the vehicle
+
+    // // Need to set up status checks and decide how we want to do this
+    // switcher_->check_status();
 }
 
 void LocalizationNode::transform_cb(const ros::TimerEvent & event)

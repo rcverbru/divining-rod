@@ -55,6 +55,8 @@ class OctreeMap : public IMap
 
         pcl::PointCloud<diviner::PointStamped>::Ptr get_data() override;
 
+        void get_voxels();
+
         void clear_map() override;
         
         int capacity() override;

@@ -154,6 +154,8 @@ struct LocalizationNodeParams
 
     double max_sync_err;
     std::string point_type;
+    bool switcher_debug = false;
+    bool syncer_debug = false;
     bool converter_debug = false;
 };
 
@@ -253,6 +255,8 @@ class LocalizationNode
 
         // Diviner
         std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> veh_pose = std::make_shared<std::vector<geometry_msgs::PoseStamped>>();
+        // std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> veh_pose( new std::vector<geometry_msgs::PoseStamped> )
+        // auto veh_pose = std::make_shared<std::vector<geometry_msgs::PoseStamped>>();
         std::vector<diviner::IMUinfo> imu_vec;
         void diviner_cb(const ros::TimerEvent & event);
 

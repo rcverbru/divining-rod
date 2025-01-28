@@ -45,6 +45,8 @@
     <arg name="max_sync_err" default="0.5"/>
     <arg name="point_type" default="pointxyzi"/>
     <arg name="converter_debug" default="false"/>
+    <arg name="switcher_debug" default="false"/>
+    <arg name="syncer_debug" default="false"/>
 
     <node name="localization_node" pkg="localization" type="localization_node" respawn="false" output="screen" cwd="ROS_HOME">
         
@@ -92,5 +94,7 @@
         <param name="max_sync_err" value="$(arg max_sync_err)"/>
         <param name="point_type" value="$(arg point_type)"/>
         <param name="converter_debug" value="$(arg converter_debug)"/>
+        <param name="switcher_debug" value="$(arg switcher_debug)"/>
+        <param name="syncer_debug" value="$(arg syncer_debug)"/>
     </node>
 </launch>

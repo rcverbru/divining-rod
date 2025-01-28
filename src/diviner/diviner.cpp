@@ -34,12 +34,14 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
         {
             std::cout << "- diviner: Finished estimating velocity" << std::endl;
         }
+
+        // Need to make a vehicle position prediction to compare to point cloud alignment
+        //vestimator_->predict(pred_veh_pose);
     }
     else
     {
         std::cout << "- diviner: Need to wait for " << 3 - veh_pose->size() << " more iterations before estimating velocity." << std::endl;
     }
-    // vestimator_->publish_transform();
 
     if(velocities.size() == 3)
     {
@@ -60,8 +62,7 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
     int num_points = cloud->size();
     std::cout << "- diviner: num points in point cloud: " << num_points << std::endl;
     
-    // First downsampling
-    
+    // First downsampling for alignment
     filter_->filter(cloud);
 
     num_points = cloud->size();
@@ -93,7 +94,7 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
         std::cout << "- diviner: Skipping aligner->align() due to nothing to align" << std::endl;
     }
 
-    // set first filter
+    // Second downsampling for map
     filter_->filter(cloud);
 
     // Add points to map
@@ -105,7 +106,12 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
     }
 
     // Update our current position 
-    aligner_->update_curr_pose(vehicle_alignment);
+    aligner_->update_curr_pose(vehicle_alignment, veh_pose);
+
+    if(debug_)
+    {
+        std::cout << "- diviner: Number of vehicle_positions: " << veh_pose->size() << std::endl;
+    }
 
     // Set up car tf to publish to tf topic
     aligner_->find_tf();

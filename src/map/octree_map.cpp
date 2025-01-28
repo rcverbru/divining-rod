@@ -114,6 +114,11 @@ pcl::PointCloud<diviner::PointStamped>::Ptr OctreeMap::get_data()
     return local_map_pointcloud;
 }
 
+void OctreeMap::get_voxels()
+{
+    //
+}
+
 void OctreeMap::clear_map()
 {
     //

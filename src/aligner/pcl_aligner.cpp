@@ -125,24 +125,54 @@ void PclAligner::find_tf()
     // odom_publisher_->publish(std::move(odom_msg));
 }
 
-void PclAligner::update_curr_pose(const diviner::alignment icp_alignment)
+void PclAligner::update_curr_pose(const diviner::alignment icp_alignment, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> veh_pose)
 {
     // Update the position based off of the ICP changes
-
+    if(params_.debug)
+    {
+        std::cout << "  - aligner: Updating Current Pose" << std::endl;
+    }
+    
     geometry_msgs::PoseStamped previous_pose;
-    geometry_msgs::PoseStamped new_pose_holder;
+    previous_pose = veh_pose->back();
 
-    new_pose_holder.pose.position.x = previous_pose.pose.position.x + icp_alignment.x;
-    new_pose_holder.pose.position.y = previous_pose.pose.position.y + icp_alignment.y;
-    new_pose_holder.pose.position.z = previous_pose.pose.position.z + icp_alignment.z;
-    new_pose_holder.pose.orientation.x = previous_pose.pose.orientation.x + icp_alignment.roll;
-    new_pose_holder.pose.orientation.y = previous_pose.pose.orientation.y + icp_alignment.pitch;
-    new_pose_holder.pose.orientation.z = previous_pose.pose.orientation.z + icp_alignment.yaw;
-    new_pose_holder.pose.orientation.w = previous_pose.pose.orientation.w + icp_alignment.w;
+    if(params_.debug)
+    {
+        std::cout << "  - aligner: Previous pose is (x = " << previous_pose.pose.position.x 
+        << ", y = " << previous_pose.pose.position.y 
+        << ", z = " << previous_pose.pose.position.z << ")"
+        << std::endl;
 
-    new_pose_holder.header.stamp = ros::Time::now();
+        std::cout << "  - aligner: Pulled previous pose. Updating current pose..." << std::endl;
+    }
 
-    updated_vehicle_position.push_back(new_pose_holder);
+
+    geometry_msgs::PoseStamped new_pose;
+
+    new_pose.pose.position.x = previous_pose.pose.position.x + icp_alignment.x;
+    new_pose.pose.position.y = previous_pose.pose.position.y + icp_alignment.y;
+    new_pose.pose.position.z = previous_pose.pose.position.z + icp_alignment.z;
+    new_pose.pose.orientation.x = previous_pose.pose.orientation.x + icp_alignment.roll;
+    new_pose.pose.orientation.y = previous_pose.pose.orientation.y + icp_alignment.pitch;
+    new_pose.pose.orientation.z = previous_pose.pose.orientation.z + icp_alignment.yaw;
+    new_pose.pose.orientation.w = previous_pose.pose.orientation.w + icp_alignment.w;
+
+    new_pose.header.stamp = ros::Time::now();
+
+    if(params_.debug)
+    {
+        std::cout << "  - aligner: New pose is (x = " << previous_pose.pose.position.x 
+        << ", y = " << new_pose.pose.position.y 
+        << ", z = " << previous_pose.pose.position.z << ")"
+        << std::endl;
+    }
+
+    veh_pose->push_back(new_pose);
+
+    // if(veh_pose->size() > 3)
+    // {
+    //     veh_pose->pop();
+    // }
 }
 
 }

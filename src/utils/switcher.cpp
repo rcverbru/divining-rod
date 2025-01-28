@@ -3,7 +3,7 @@
 namespace diviner
 {
 
-void Switcher::check_gps_status()
+void Switcher::check_status()
 {
     //
 }

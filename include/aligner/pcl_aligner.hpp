@@ -21,7 +21,7 @@ struct PclAlignerParams
     std::string alignment_state = "set"; // set (use set iterations) or automatic (auto find alignment)
     int num_iterations = 2;
     double convergence_criterion;
-    bool debug = false;
+    bool debug = true;
 };
 
 inline
@@ -92,13 +92,12 @@ class PclAligner : public IAligner
          * @param rotation_vector rotation vector from icp
          * @return maybe updated vehicle pose vector?
          */
-        void update_curr_pose(const diviner::alignment vehicle_alignment) override;
+        void update_curr_pose(const diviner::alignment vehicle_alignment, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> veh_pose) override;
 
     private:
         PclAlignerParams params_;
 
         pcl::IterativeClosestPoint<diviner::PointStamped, diviner::PointStamped> icp;
-        std::vector<geometry_msgs::PoseStamped> updated_vehicle_position;
 
 };
 

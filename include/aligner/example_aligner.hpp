@@ -58,7 +58,7 @@ class ExampleAligner : public IAligner
          * @param rotation_vector rotation vector from icp
          * @return maybe updated vehicle pose vector?
          */
-        void update_curr_pose(const diviner::alignment vehicle_alignment) override {};
+        void update_curr_pose(const diviner::alignment vehicle_alignment, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> updated_vehicle_position) override {};
 
     private:
         ExampleAlignerParams params_;

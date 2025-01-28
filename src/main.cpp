@@ -54,6 +54,8 @@ int main (int argc, char** argv)
     // Utils
     node->getParam("max_sync_err", ln_params.max_sync_err);
     node->getParam("point_type", ln_params.point_type);
+    node->getParam("switcher_debug", ln_params.switcher_debug);
+    node->getParam("syncer_debug", ln_params.syncer_debug);
     node->getParam("converter_debug", ln_params.converter_debug);
 
 

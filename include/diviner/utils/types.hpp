@@ -7,7 +7,7 @@
 #include <pcl/filters/impl/passthrough.hpp>
 
 // TF shtuff
-#include <geometry_msgs/Transform.h>
+#include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/Twist.h>
 
 // PCL
@@ -85,17 +85,6 @@ struct Velocity
     geometry_msgs::Vector3 angular;
 };
 
-struct Pose
-{
-    double x_m;
-    double y_m;
-    double z_m;
-    double rot_x;
-    double rot_y;
-    double rot_z;
-    double rot_w;
-};
-
 struct Point3d
 {
     float x;
@@ -111,15 +100,18 @@ struct IMUinfo
     float yaw;
 };
 
-struct alignment
+struct Alignment
 {
-    float x;
-    float y;
-    float z;
-    float roll;
-    float pitch;
-    float yaw;
-    float w;
+    // float x;
+    // float y;
+    // float z;
+    // float roll;
+    // float pitch;
+    // float yaw;
+    // float w;
+    Eigen::Matrix4d transformation_matrix;
+    geometry_msgs::Pose pose;
+    geometry_msgs::TransformStamped transform;
 };
 
 // struct LidarPoint

@@ -8,6 +8,7 @@
 #include <pcl/point_types.h>
 
 #include <geometry_msgs/PoseStamped.h>
+#include <eigen3/Eigen/Core>
 
 #include <vector>
 #include <memory>
@@ -42,21 +43,7 @@ class IAligner
          * @param point_cloud Pointer to the current scan
          * @return returns the translation and rotation matrix to match scan with map
          */
-        virtual void align(pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, std::shared_ptr<diviner::IMap> map_) = 0;
-
-        /**
-         * Takes in new points and updates the current map with them
-         * 
-         * @param point_cloud Pointer to the current scan
-         * @return Nothing
-         */
-        virtual void add_cloud(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, std::shared_ptr<diviner::IMap> map_) = 0;
-
-        /**
-         * 
-         * 
-         */
-        //virtual void transform_current_scan() = 0;
+        virtual Eigen::Matrix4d align(pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, std::shared_ptr<diviner::IMap> map_) = 0;
 
         /**
          * Calculates transform for current position in the map frame
@@ -68,6 +55,14 @@ class IAligner
         virtual void find_tf() = 0;
 
         /**
+         * Updates the points in the point cloud to match with their aligned locations in the map
+         * 
+         * @param point_cloud Pointer to the current scan
+         * @param alignment alignment vector/matrix 
+         */
+        virtual void update_points(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, diviner::Alignment alignment) = 0;
+
+        /**
          * Takes in the rotation and translation vectors from icp and updates
          * the current estimated position
          * 
@@ -76,7 +71,7 @@ class IAligner
          * @param rotation_vector rotation vector from icp
          * @return maybe updated vehicle pose vector?
          */
-        virtual void update_curr_pose(const diviner::alignment vehicle_alignment, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> updated_vehicle_position) = 0;
+        virtual void update_curr_pose(const diviner::Alignment vehicle_alignment, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> updated_vehicle_position) = 0;
 
     private:
         IAlignerParams params_;

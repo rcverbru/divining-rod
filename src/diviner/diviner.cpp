@@ -82,7 +82,7 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
     if(!first_scan)
     {
         // Align the points to the map inorder figure out the location
-        aligner_->align(cloud, map_);
+        alignment_holder = aligner_->align(cloud, map_);
 
         if(debug_)
         {
@@ -96,6 +96,9 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
 
     // Second downsampling for map
     filter_->filter(cloud);
+
+    // update point pose with alignment info
+    aligner_->update_points(cloud, vehicle_alignment);
 
     // Add points to map
     map_->add_cloud(cloud);

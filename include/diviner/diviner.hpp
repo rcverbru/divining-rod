@@ -62,11 +62,12 @@ class Diviner
         bool debug_;
         bool first_scan = true;
 
-        diviner::Pose current_pose;
+        geometry_msgs::Pose current_pose;
         std::vector<diviner::Velocity> velocities;
         geometry_msgs::TransformStamped transform;
 
-        diviner::alignment vehicle_alignment;
+        diviner::Alignment vehicle_alignment;
+        Eigen::Matrix4d alignment_holder;
 
         pcl::PointCloud<diviner::PointStamped>::Ptr deskewed_cloud;
 };

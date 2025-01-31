@@ -7,8 +7,6 @@
 #include <pcl/registration/icp.h>
 #include <pcl/console/time.h>
 
-#include <eigen3/Eigen/Core>
-
 #include <vector>
 #include <list>
 #include <memory>
@@ -20,7 +18,8 @@ struct PclAlignerParams
 {
     std::string alignment_state = "set"; // set (use set iterations) or automatic (auto find alignment)
     int num_iterations = 2;
-    double convergence_criterion;
+    int max_num_iterations = 50;
+    double convergence_criterion = 0.05;
     bool debug = true;
 };
 
@@ -59,29 +58,21 @@ class PclAligner : public IAligner
          * @param map_ pointer to local_map
          * @return nuthin currently. may need to return alignment information
          */
-        void align(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, std::shared_ptr<diviner::IMap> map_) override;
-
-        /**
-         * Takes in new points and updates the current map with them
-         * 
-         * @param point_cloud Pointer to the current scan
-         * @return Nothing
-         */
-        void add_cloud(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, std::shared_ptr<diviner::IMap> map_) override;
-
-        /**
-         * Takes in the translation and rotation matrix from alignment and updates the point cloud to match with the changes
-         * 
-         * @param alignment translational and rotational matrix from aligner->align function
-         * @param point_cloud_ pointer to filtered scan that needs to be transformed
-         */
-        void apply_transform(); // TODO: Add to aligner interface
+        Eigen::Matrix4d align(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, std::shared_ptr<diviner::IMap> map_) override;
 
         /**
          * 
          * 
          */
         void find_tf() override;
+
+        /**
+         * Takes in the translation and rotation matrix from alignment and updates the point cloud to match with the changes
+         * 
+         * @param point_cloud_ pointer to filtered scan that needs to be transformed
+         * @param alignment translational and rotational matrix from aligner->align function
+         */
+        void update_points(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, diviner::Alignment alignment) override {};
 
         /**
          * Takes in the rotation and translation vectors from icp and updates
@@ -92,7 +83,7 @@ class PclAligner : public IAligner
          * @param rotation_vector rotation vector from icp
          * @return maybe updated vehicle pose vector?
          */
-        void update_curr_pose(const diviner::alignment vehicle_alignment, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> veh_pose) override;
+        void update_curr_pose(const diviner::Alignment vehicle_alignment, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> veh_pose) override;
 
     private:
         PclAlignerParams params_;

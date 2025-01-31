@@ -36,59 +36,96 @@ void PclAligner::initialize(std::shared_ptr<std::vector<geometry_msgs::PoseStamp
     }
 }
 
-void PclAligner::align(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud_, std::shared_ptr<diviner::IMap> map_)
+Eigen::Matrix4d PclAligner::align(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud_, std::shared_ptr<diviner::IMap> map_)
 {
     // The Iterative Closest Point algorithm
     // pulled from pcl icp tutorial...
 
-    Eigen::Matrix4d transformation_matrix = Eigen::Matrix4d::Identity ();
-    int iterations = 25;
+    Eigen::Matrix4d transformation_matrix = Eigen::Matrix4d::Identity();
+    // int iterations = 25;
 
-    icp.setMaximumIterations(params_.num_iterations);
-    icp.setInputSource(point_cloud_);
-    icp.setInputTarget(map_->get_data());
-    icp.align(*point_cloud_);
+    // std::cout << "  - aligner: " << point_cloud_->front() << std::endl;
 
-    std::cout << "  - aligner: Applied " << params_.num_iterations << " ICP iteration(s)" << std::endl;
+    // need to set this to be a loop until convergence score is below a certain value
 
-    if(icp.hasConverged())
+    if(params_.alignment_state == "set")
     {
-        std::cout << "  - aligner: ICP has converged, score is " << icp.getFitnessScore() << std::endl;
-        std::cout << "  - aligner: ICP transformation " << params_.num_iterations << " : cloud_icp -> local_map" << std::endl;
-        transformation_matrix = icp.getFinalTransformation().cast<double>();
-        print4x4Matrix (transformation_matrix);
+        // Set static number of iterations
+        icp.setMaximumIterations(params_.num_iterations);
+        icp.setInputSource(point_cloud_);
+        icp.setInputTarget(map_->get_data());
+        icp.align(*point_cloud_);
+
+        if(params_.debug)
+        {
+            std::cout << "  - aligner: Applied " << params_.num_iterations << " ICP iteration(s)" << std::endl;
+        }
+        // std::cout << "  - aligner: " << point_cloud_->front() << std::endl;
+
+        if(icp.hasConverged())
+        {
+            std::cout << "  - aligner: ICP has converged, score is " << icp.getFitnessScore() << std::endl;
+            std::cout << "  - aligner: ICP transformation " << params_.num_iterations << " : cloud_icp -> local_map" << std::endl;
+            transformation_matrix = icp.getFinalTransformation().cast<double>();
+            print4x4Matrix (transformation_matrix);
+        }
+        else
+        {
+            PCL_ERROR ("\nICP has not converged.\n");
+        }
+    }
+    else if(params_.alignment_state == "automatic")
+    {
+        // Needs to be fixed cuz it erroring out
+        int iterations_count = 0;
+        icp.setInputSource(point_cloud_);
+        icp.setInputTarget(map_->get_data());
+
+        if(params_.convergence_criterion != 0)
+        {
+            while(icp.getFitnessScore() > params_.convergence_criterion)
+            {
+                icp.align(*point_cloud_);
+
+                iterations_count++;
+
+                if(iterations_count == params_.max_num_iterations)
+                {
+                    std::cout << "  - aligner: Reached max number of iterations. Stopping alignment..." << std::endl;
+                    // break;
+                }
+            }
+        }
+        else
+        {
+            std::cout << "  - aligner: Fix the convergence criterion. " << std::endl;
+        }
+
+        if(params_.debug)
+        {
+            std::cout << "  - aligner: Applied " << iterations_count << " ICP iteration(s)" << std::endl;
+        }
+
+        if(icp.hasConverged())
+        {
+            std::cout << "  - aligner: ICP has converged, score is " << icp.getFitnessScore() << std::endl;
+            std::cout << "  - aligner: ICP transformation " << iterations_count << " : cloud_icp -> local_map" << std::endl;
+            transformation_matrix = icp.getFinalTransformation().cast<double>();
+            print4x4Matrix (transformation_matrix);
+        }
+        else
+        {
+            PCL_ERROR ("\nICP has not converged.\n");
+        }
+
     }
     else
     {
-        PCL_ERROR ("\nICP has not converged.\n");
+        // std::cout << "  - aligner: Aligner run state not set" << std::endl;
+        PCL_ERROR("\nAligner run state not set.\n");
     }
 
-    // for(const auto point : point_cloud_)
-    // {
-    //     // add offset to points to match with map location
-    // }
-}
-
-void PclAligner::add_cloud(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, std::shared_ptr<diviner::IMap> map_)
-{
-    // add new points to local map
-    if(true)
-    {
-        std::cout << "  - aligner: Adding points in aligner" << std::endl;
-        std::cout << "  - aligner: Adding " << point_cloud->size() << " points to map." << std::endl;
-    }
-
-    std::cout << "  - aligner: added point cloud to Octree" << std::endl;
-
-    // map_ = std::make_shared<pcl::octree::OctreePointCloud<diviner::PointStamped>>();
-    // map_->setInputCloud(point_cloud);
-
-}
-
-void apply_transform()
-{
-    //
-    
+    return transformation_matrix;
 }
 
 void PclAligner::find_tf()
@@ -125,7 +162,12 @@ void PclAligner::find_tf()
     // odom_publisher_->publish(std::move(odom_msg));
 }
 
-void PclAligner::update_curr_pose(const diviner::alignment icp_alignment, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> veh_pose)
+// void PclAligner::update_points(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, diviner::Alignment vehicle_alignment)
+// {
+//     //
+// }
+
+void PclAligner::update_curr_pose(const diviner::Alignment icp_alignment, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> veh_pose)
 {
     // Update the position based off of the ICP changes
     if(params_.debug)
@@ -149,13 +191,13 @@ void PclAligner::update_curr_pose(const diviner::alignment icp_alignment, std::s
 
     geometry_msgs::PoseStamped new_pose;
 
-    new_pose.pose.position.x = previous_pose.pose.position.x + icp_alignment.x;
-    new_pose.pose.position.y = previous_pose.pose.position.y + icp_alignment.y;
-    new_pose.pose.position.z = previous_pose.pose.position.z + icp_alignment.z;
-    new_pose.pose.orientation.x = previous_pose.pose.orientation.x + icp_alignment.roll;
-    new_pose.pose.orientation.y = previous_pose.pose.orientation.y + icp_alignment.pitch;
-    new_pose.pose.orientation.z = previous_pose.pose.orientation.z + icp_alignment.yaw;
-    new_pose.pose.orientation.w = previous_pose.pose.orientation.w + icp_alignment.w;
+    new_pose.pose.position.x = previous_pose.pose.position.x + icp_alignment.transform.transform.translation.x;
+    new_pose.pose.position.y = previous_pose.pose.position.y + icp_alignment.transform.transform.translation.y;
+    new_pose.pose.position.z = previous_pose.pose.position.z + icp_alignment.transform.transform.translation.z;
+    new_pose.pose.orientation.x = previous_pose.pose.orientation.x + icp_alignment.transform.transform.rotation.x;
+    new_pose.pose.orientation.y = previous_pose.pose.orientation.y + icp_alignment.transform.transform.rotation.y;
+    new_pose.pose.orientation.z = previous_pose.pose.orientation.z + icp_alignment.transform.transform.rotation.z;
+    new_pose.pose.orientation.w = previous_pose.pose.orientation.w + icp_alignment.transform.transform.rotation.w;
 
     new_pose.header.stamp = ros::Time::now();
 

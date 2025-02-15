@@ -5,7 +5,6 @@ namespace diviner
 
 pcl::PointCloud<diviner::PointStamped>::Ptr MsgConverter::convert(sensor_msgs::PointCloud2ConstPtr input_cloud)
 {
-    bool debug_ = true;
     cepton_cloud_ = std::make_shared<std::vector<diviner::CeptonPoint>>();
 
     pcl::PointCloud<diviner::PointStamped>::Ptr current_scan_ =
@@ -14,7 +13,7 @@ pcl::PointCloud<diviner::PointStamped>::Ptr MsgConverter::convert(sensor_msgs::P
     //
     from_ros(input_cloud, cepton_cloud_, header);
 
-    if(debug_)
+    if(params_.debug)
     {
         std::cout << "  - msgconverter: Converted " << cepton_cloud_->size() << " points to cepton points." << std::endl;
     }
@@ -28,7 +27,7 @@ pcl::PointCloud<diviner::PointStamped>::Ptr MsgConverter::convert(sensor_msgs::P
 
         to_pointxyzi(cepton_cloud_, header, current_scan_);
 
-        if(debug_)
+        if(params_.debug)
         {
             std::cout << "  - msgconverter: Converted " << current_scan_->size() << " points to PCL PointXYZI points." << std::endl;
         }

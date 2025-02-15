@@ -33,7 +33,7 @@ class ExampleAligner : public IAligner
          */
         void initialize(std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> veh_pose) override {};
 
-        Eigen::Matrix4d align(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, std::shared_ptr<diviner::IMap> map_) override;
+        geometry_msgs::Transform align(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, std::shared_ptr<diviner::IMap> map_) override;
 
         /**
          * 
@@ -58,7 +58,7 @@ class ExampleAligner : public IAligner
          * @param rotation_vector rotation vector from icp
          * @return maybe updated vehicle pose vector?
          */
-        void update_curr_pose(const diviner::Alignment vehicle_alignment, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> updated_vehicle_position) override {};
+        void update_curr_pose(const geometry_msgs::Transform vehicle_alignment, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> updated_vehicle_position) override {};
 
     private:
         ExampleAlignerParams params_;

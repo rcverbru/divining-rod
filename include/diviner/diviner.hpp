@@ -17,15 +17,15 @@
 namespace diviner
 {
 
-// struct DivinerParams
-// {
-//     std::shared_ptr<IAligner> aligner;
-//     std::shared_ptr<IFilter> filter,
-//     std::shared_ptr<IDeskewer> deskewer,
-//     std::shared_ptr<IMapper> mapper,
-//     std::shared_ptr<IVestimator> vestimator,
-//     bool debug = false;
-// };
+struct DivinerParams
+{
+    std::shared_ptr<IAligner> aligner;
+    std::shared_ptr<IFilter> filter;
+    std::shared_ptr<IDeskewer> deskewer;
+    std::shared_ptr<IMap> map;
+    std::shared_ptr<IVestimator> vestimator;
+    bool debug = false;
+};
 
 
 class Diviner
@@ -51,7 +51,7 @@ class Diviner
          * 
          * @param cloud current point cloud 
          */
-        void step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_msgs::TransformStamped gnss_to_map_, geometry_msgs::TransformStamped cloud_to_vehicle, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> veh_pose);
+        void step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_msgs::TransformStamped gnss_to_map_, geometry_msgs::TransformStamped cloud_to_vehicle, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> &veh_pose);
 
     private:
         std::shared_ptr<IAligner> aligner_;
@@ -67,7 +67,7 @@ class Diviner
         geometry_msgs::TransformStamped transform;
 
         diviner::Alignment vehicle_alignment;
-        Eigen::Matrix4d alignment_holder;
+        geometry_msgs::Transform alignment_holder;
 
         pcl::PointCloud<diviner::PointStamped>::Ptr deskewed_cloud;
 };

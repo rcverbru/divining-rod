@@ -5,7 +5,7 @@
 namespace diviner
 {
 
-void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_msgs::TransformStamped gnss_to_map_, geometry_msgs::TransformStamped cloud_to_vehicle, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> veh_pose)
+void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_msgs::TransformStamped gnss_to_map_, geometry_msgs::TransformStamped cloud_to_vehicle, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> &veh_pose)
 {
     if(debug_)
     {
@@ -59,6 +59,9 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
         std::cout << "- diviner: Need to wait for " << 3 - velocities.size() << " more iterations before deskewing cloud." << std::endl;
     }
 
+    // holder idea for dsor if we feel like it (doubtful but the idea is here)
+    // preprocessor_->process();
+
     int num_points = cloud->size();
     std::cout << "- diviner: num points in point cloud: " << num_points << std::endl;
     
@@ -86,6 +89,10 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
 
         if(debug_)
         {
+            std::cout << "- diviner: Translation vector is (x = " << alignment_holder.translation.x 
+            << ", y = " << alignment_holder.translation.y 
+            << ", z = " << alignment_holder.translation.z << ")"
+            << std::endl;
             std::cout << "- diviner: After aligner" << std::endl;
         }
     }
@@ -98,7 +105,7 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
     filter_->filter(cloud);
 
     // update point pose with alignment info
-    aligner_->update_points(cloud, vehicle_alignment);
+    // aligner_->update_points(cloud, vehicle_alignment);
 
     // Add points to map
     map_->add_cloud(cloud);
@@ -108,8 +115,11 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
         std::cout << "- diviner: Added points to the map" << std::endl;
     }
 
+    // kahlman filter for position estimation smoothing
+    // blender_->smoothie();
+
     // Update our current position 
-    aligner_->update_curr_pose(vehicle_alignment, veh_pose);
+    aligner_->update_curr_pose(alignment_holder, veh_pose);
 
     if(debug_)
     {

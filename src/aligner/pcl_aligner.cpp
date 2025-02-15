@@ -36,7 +36,7 @@ void PclAligner::initialize(std::shared_ptr<std::vector<geometry_msgs::PoseStamp
     }
 }
 
-Eigen::Matrix4d PclAligner::align(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud_, std::shared_ptr<diviner::IMap> map_)
+geometry_msgs::Transform PclAligner::align(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud_, std::shared_ptr<diviner::IMap> map_)
 {
     // The Iterative Closest Point algorithm
     // pulled from pcl icp tutorial...
@@ -125,41 +125,19 @@ Eigen::Matrix4d PclAligner::align(const pcl::PointCloud<diviner::PointStamped>::
         PCL_ERROR("\nAligner run state not set.\n");
     }
 
-    return transformation_matrix;
+    geometry_msgs::Transform transform = matrix_to_transform(transformation_matrix);
+
+    std::cout << "  - aligner: Translation vector is (x = " << transform.translation.x 
+    << ", y = " << transform.translation.y 
+    << ", z = " << transform.translation.z << ")"
+    << std::endl;
+
+    return transform;
 }
 
 void PclAligner::find_tf()
 {
-    // // Broadcast the tf ---
-    // if (publish_odom_tf_) {
-    //     geometry_msgs::msg::TransformStamped transform_msg;
-    //     transform_msg.header.stamp = header.stamp;
-    //     if (invert_odom_tf_) {
-    //         transform_msg.header.frame_id = moving_frame;
-    //         transform_msg.child_frame_id = lidar_odom_frame_;
-    //         transform_msg.transform = tf2::sophusToTransform(pose.inverse());
-    //     } else {
-    //         transform_msg.header.frame_id = lidar_odom_frame_;
-    //         transform_msg.child_frame_id = moving_frame;
-    //         transform_msg.transform = tf2::sophusToTransform(pose);
-    //     }
-    //     tf_broadcaster_->sendTransform(transform_msg);
-    // }
-
-    // // publish odometry msg
-    // nav_msgs::msg::Odometry odom_msg;
-    // odom_msg.header.stamp = header.stamp;
-    // odom_msg.header.frame_id = lidar_odom_frame_;
-    // odom_msg.child_frame_id = moving_frame;
-    // odom_msg.pose.pose = tf2::sophusToPose(pose);
-    // odom_msg.pose.covariance.fill(0.0);
-    // odom_msg.pose.covariance[0] = position_covariance_;
-    // odom_msg.pose.covariance[7] = position_covariance_;
-    // odom_msg.pose.covariance[14] = position_covariance_;
-    // odom_msg.pose.covariance[21] = orientation_covariance_;
-    // odom_msg.pose.covariance[28] = orientation_covariance_;
-    // odom_msg.pose.covariance[35] = orientation_covariance_;
-    // odom_publisher_->publish(std::move(odom_msg));
+    // set up tf to be passed to the broadcaster
 }
 
 // void PclAligner::update_points(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, diviner::Alignment vehicle_alignment)
@@ -167,7 +145,7 @@ void PclAligner::find_tf()
 //     //
 // }
 
-void PclAligner::update_curr_pose(const diviner::Alignment icp_alignment, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> veh_pose)
+void PclAligner::update_curr_pose(const geometry_msgs::Transform icp_alignment, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> veh_pose)
 {
     // Update the position based off of the ICP changes
     if(params_.debug)
@@ -185,27 +163,32 @@ void PclAligner::update_curr_pose(const diviner::Alignment icp_alignment, std::s
         << ", z = " << previous_pose.pose.position.z << ")"
         << std::endl;
 
+        std::cout << "  - aligner: Translation vector is (x = " << icp_alignment.translation.x 
+        << ", y = " << icp_alignment.translation.y 
+        << ", z = " << icp_alignment.translation.z << ")"
+        << std::endl;
+
         std::cout << "  - aligner: Pulled previous pose. Updating current pose..." << std::endl;
     }
 
 
     geometry_msgs::PoseStamped new_pose;
 
-    new_pose.pose.position.x = previous_pose.pose.position.x + icp_alignment.transform.transform.translation.x;
-    new_pose.pose.position.y = previous_pose.pose.position.y + icp_alignment.transform.transform.translation.y;
-    new_pose.pose.position.z = previous_pose.pose.position.z + icp_alignment.transform.transform.translation.z;
-    new_pose.pose.orientation.x = previous_pose.pose.orientation.x + icp_alignment.transform.transform.rotation.x;
-    new_pose.pose.orientation.y = previous_pose.pose.orientation.y + icp_alignment.transform.transform.rotation.y;
-    new_pose.pose.orientation.z = previous_pose.pose.orientation.z + icp_alignment.transform.transform.rotation.z;
-    new_pose.pose.orientation.w = previous_pose.pose.orientation.w + icp_alignment.transform.transform.rotation.w;
+    new_pose.pose.position.x = previous_pose.pose.position.x + icp_alignment.translation.x;
+    new_pose.pose.position.y = previous_pose.pose.position.y + icp_alignment.translation.y;
+    new_pose.pose.position.z = previous_pose.pose.position.z + icp_alignment.translation.z;
+    new_pose.pose.orientation.x = previous_pose.pose.orientation.x + icp_alignment.rotation.x;
+    new_pose.pose.orientation.y = previous_pose.pose.orientation.y + icp_alignment.rotation.y;
+    new_pose.pose.orientation.z = previous_pose.pose.orientation.z + icp_alignment.rotation.z;
+    new_pose.pose.orientation.w = previous_pose.pose.orientation.w + icp_alignment.rotation.w;
 
     new_pose.header.stamp = ros::Time::now();
 
     if(params_.debug)
     {
-        std::cout << "  - aligner: New pose is (x = " << previous_pose.pose.position.x 
+        std::cout << "  - aligner: New pose is (x = " << new_pose.pose.position.x 
         << ", y = " << new_pose.pose.position.y 
-        << ", z = " << previous_pose.pose.position.z << ")"
+        << ", z = " << new_pose.pose.position.z << ")"
         << std::endl;
     }
 

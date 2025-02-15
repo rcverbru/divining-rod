@@ -21,6 +21,9 @@ int main (int argc, char** argv)
     // Collect LocalizationNode Parameters
     node->getParam("running_state", ln_params.running_state);
     node->getParam("debug", ln_params.debug);
+    node->getParam("lidar_cb_debug", ln_params.lidar_cb_debug);
+    node->getParam("gnss_cb_debug", ln_params.gnss_cb_debug);
+    node->getParam("topic_debug", ln_params.topic_debug);
 
     // Diviner Params
     node->getParam("diviner_debug", ln_params.diviner_debug);

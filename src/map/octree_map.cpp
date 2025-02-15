@@ -134,7 +134,7 @@ int OctreeMap::capacity()
 size_t OctreeMap::size()
 {
     //
-    return 9;
+    return local_map_octree->getLeafCount();
 }
 
 void OctreeMap::trim_map()

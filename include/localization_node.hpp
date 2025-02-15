@@ -102,25 +102,51 @@ ros::Time pclToRosTime(uint64_t pcl_timestamp) {
     return ros::Time(sec, nsec);
 };
 
+inline
+void updateVehiclePose(geometry_msgs::Pose & vehicle_pose, const geometry_msgs::TransformStamped & map_to_gnss, const geometry_msgs::TransformStamped & gnss_to_base_link)
+{
+  static tf2::Transform map_to_gnss_tf, gnss_to_base_link_tf;
+
+  tf2::fromMsg(map_to_gnss.transform, map_to_gnss_tf);
+  tf2::fromMsg(gnss_to_base_link.transform, gnss_to_base_link_tf);
+
+  auto gnss_to_map_tf = map_to_gnss_tf.inverse(); // Location of map origin expressed in gnss frame
+  auto base_link_to_map_tf = gnss_to_base_link_tf * gnss_to_map_tf; // Location of map origin expressed in base_link frame
+  auto map_to_base_link_tf = base_link_to_map_tf.inverse(); // Location of base_link origin expressed in map frame
+
+  auto map_to_base_link = tf2::toMsg(map_to_base_link_tf);
+  vehicle_pose.position.x = map_to_base_link.translation.x;
+  vehicle_pose.position.y = map_to_base_link.translation.y;
+  vehicle_pose.orientation = map_to_base_link.rotation;
+};
+
 struct LocalizationNodeParams
 {
+    // subscribers
     std::string lidar_topic = "/cepton2/points_221339";
     std::string wheel_tick_topic;
     std::string gnss_topic = "/novatel/oem7/odom";
     std::string imu_topic = "/novatel/oem7/corrimu";
-    std::string map_tf_topic = "/vehicle_pose";
+    
+    // publishers
+    std::string local_map_topic = "local_map"; // topic for visualizing local map
+    std::string position_topic = "position"; // localization based position
+    std::string localization_pose_topic = "estimated_pose"; // replaces above...
+    std::string map_tf_topic = "/vehicle_pose"; // overwrite map tf topic
+    
+    // debug publishers
+    std::string deskewed_pub_topic = "deskewed_cloud"; 
+    std::string filtered_pub_topic = "filtered_cloud";
+    std::string octree_pub_topic = "octree_visual";
 
-    std::string local_map_topic = "localization/local_map";
-    std::string position_topic = "localization/position";
-    std::string deskewed_pub_topic = "localization/deskewed_cloud";
-    std::string filtered_pub_topic = "localization/filtered_cloud";
-
+    bool lidar_cb_debug = false;
+    bool gnss_cb_debug = false;
     bool topic_debug = false;
 
+    std::string world_frame = "world";
     std::string map_frame = "map";
     std::string vehicle_frame = "base_link";
     std::string cepton_frame = "cepton2";
-    std::string world_frame = "world";
     std::string gnss_frame = "gnss1";
 
     double diviner_pub_frequency_hz = 20.0;
@@ -170,7 +196,7 @@ class LocalizationNode
         std::shared_ptr<ros::NodeHandle> node_;
         std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
         std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
-        std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+        std::shared_ptr<tf2_ros::TransformBroadcaster> tf_br_;
 
         bool localization_running;
         std::mutex lidar_mtx_;
@@ -183,10 +209,12 @@ class LocalizationNode
         ros::Subscriber imu_sub;
 
         // ROS Publishers
-        ros::Publisher localization_pub_;
-        ros::Publisher position_pub_;
+        ros::Publisher localization_map_pub_;
+        ros::Publisher map_tf_pub_;
+        ros::Publisher pose_pub_;
         ros::Publisher deskewed_pub_;
         ros::Publisher voxel_pub_;
+        ros::Publisher octree_pub_;
 
         // ROS Timers
         ros::Timer diviner_timer_;
@@ -242,12 +270,14 @@ class LocalizationNode
 
         // Transform Publisher
         geometry_msgs::TransformStamped transform_out;
-        void update_transforms();
+        void update_transforms(geometry_msgs::PoseStamped &vehicle_location);
 
         // Transforms
-        geometry_msgs::TransformStamped cepton_to_vehicle_;
+        geometry_msgs::TransformStamped transform_stamped_;
+        geometry_msgs::TransformStamped cepton_to_base_link_;
+        geometry_msgs::TransformStamped gnss_to_base_link_;
+        geometry_msgs::TransformStamped gnss_to_cepton_;
         geometry_msgs::TransformStamped world_to_map_;
-        geometry_msgs::TransformStamped curr_transform_stamped_;
         geometry_msgs::TransformStamped base_link_to_map_stamped_;
         std::queue<geometry_msgs::PoseStamped> vehicle_poses_queue_;
         bool curr_transform_updated_ = false;

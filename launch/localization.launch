@@ -10,8 +10,11 @@
     <arg name="diviner_pub_frequency_hz" default="20.0"/>
 
     <!-- Running State -->
-    <arg name="running_state" default="localization"/>
+    <arg name="running_state" default="localization"/> <!-- gnss, localization, switching, or both-->
     <arg name="debug" default="true"/>
+    <arg name="lidar_cb_debug" default="false"/>
+    <arg name="gnss_cb_debug" default="false"/>
+    <arg name="topic_debug" default="false"/>
 
     <!-- Diviner -->
     <arg name="diviner_debug" default="true"/>
@@ -62,7 +65,10 @@
         <!-- Running State -->
         <param name="running_state" value="$(arg running_state)"/>
         <param name="debug" value="$(arg debug)"/>
-        
+        <param name="lidar_cb_debug" value="$(arg lidar_cb_debug)"/>
+        <param name="gnss_cb_debug" value="$(arg gnss_cb_debug)"/>
+        <param name="topic_debug" value="$(arg topic_debug)"/>
+
         <!-- Diviner -->
         <param name="diviner_debug" value="$(arg diviner_debug)"/>
 

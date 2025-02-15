@@ -3,7 +3,7 @@
 namespace diviner
 {
 
-Eigen::Matrix4d ExampleAligner::align(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, std::shared_ptr<diviner::IMap> map_)
+geometry_msgs::Transform ExampleAligner::align(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, std::shared_ptr<diviner::IMap> map_)
 {
     // Do nothing
     //*point_cloud = *point_cloud;

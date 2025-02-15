@@ -43,7 +43,7 @@ class IAligner
          * @param point_cloud Pointer to the current scan
          * @return returns the translation and rotation matrix to match scan with map
          */
-        virtual Eigen::Matrix4d align(pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, std::shared_ptr<diviner::IMap> map_) = 0;
+        virtual geometry_msgs::Transform align(pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, std::shared_ptr<diviner::IMap> map_) = 0;
 
         /**
          * Calculates transform for current position in the map frame
@@ -71,7 +71,7 @@ class IAligner
          * @param rotation_vector rotation vector from icp
          * @return maybe updated vehicle pose vector?
          */
-        virtual void update_curr_pose(const diviner::Alignment vehicle_alignment, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> updated_vehicle_position) = 0;
+        virtual void update_curr_pose(const geometry_msgs::Transform vehicle_alignment, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> updated_vehicle_position) = 0;
 
     private:
         IAlignerParams params_;

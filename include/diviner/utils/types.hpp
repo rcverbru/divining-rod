@@ -102,15 +102,7 @@ struct IMUinfo
 
 struct Alignment
 {
-    // float x;
-    // float y;
-    // float z;
-    // float roll;
-    // float pitch;
-    // float yaw;
-    // float w;
     Eigen::Matrix4d transformation_matrix;
-    geometry_msgs::Pose pose;
     geometry_msgs::TransformStamped transform;
 };
 

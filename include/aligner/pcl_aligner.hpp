@@ -34,6 +34,77 @@ void print4x4Matrix (const Eigen::Matrix4d & matrix)
   printf ("\tt = < %6.3f, %6.3f, %6.3f >\n\n", matrix (0, 3), matrix (1, 3), matrix (2, 3));
 };
 
+inline
+geometry_msgs::Transform matrix_to_transform(Eigen::Matrix4d matrix)
+{
+    bool debug = false;
+    geometry_msgs::Quaternion q;
+    geometry_msgs::Vector3 v;
+
+    // Yoinked this from somewhere else
+    float trace = matrix.coeff(0, 0) + matrix.coeff(1, 1) + matrix.coeff(2, 2);
+    if( trace > 0 ) {
+        float s = 0.5f / sqrtf(trace + 1.0f);
+        q.w = 0.25f / s;
+        q.x = ( matrix.coeff(2, 1) - matrix.coeff(1, 2) ) * s;
+        q.y = ( matrix.coeff(0, 2) - matrix.coeff(2, 0) ) * s;
+        q.z = ( matrix.coeff(1, 0) - matrix.coeff(0, 1) ) * s;
+    } else {
+        if ( matrix.coeff(0, 0) > matrix.coeff(1, 1) && matrix.coeff(0, 0) > matrix.coeff(2, 2) ) {
+            float s = 2.0f * sqrtf( 1.0f + matrix.coeff(0, 0) - matrix.coeff(1, 1) - matrix.coeff(2, 2));
+            q.w = (matrix.coeff(2, 1) - matrix.coeff(1, 2) ) / s;
+            q.x = 0.25f * s;
+            q.y = (matrix.coeff(0, 1) + matrix.coeff(1, 0) ) / s;
+            q.z = (matrix.coeff(0, 2) + matrix.coeff(2, 0) ) / s;
+        } else if (matrix.coeff(1, 1) > matrix.coeff(2, 2)) {
+            float s = 2.0f * sqrtf( 1.0f + matrix.coeff(1, 1) - matrix.coeff(0, 0) - matrix.coeff(2, 2));
+            q.w = (matrix.coeff(0, 2) - matrix.coeff(2, 0) ) / s;
+            q.x = (matrix.coeff(0, 1) + matrix.coeff(1, 0) ) / s;
+            q.y = 0.25f * s;
+            q.z = (matrix.coeff(1, 2) + matrix.coeff(2, 1) ) / s;
+        } else {
+            float s = 2.0f * sqrtf( 1.0f + matrix.coeff(2, 2) - matrix.coeff(0, 0) - matrix.coeff(1, 1) );
+            q.w = (matrix.coeff(1, 0) - matrix.coeff(0, 1) ) / s;
+            q.x = (matrix.coeff(0, 2) + matrix.coeff(2, 0) ) / s;
+            q.y = (matrix.coeff(1, 2) + matrix.coeff(2, 1) ) / s;
+            q.z = 0.25f * s;
+        }
+    }
+
+    // Steal translation next
+    v.x = matrix.coeff(0, 3);
+    v.y = matrix.coeff(1, 3);
+    v.z = matrix.coeff(2, 3);
+
+    if(debug)
+    {
+        std::cout << "    - matrix function: Unadded translation vector is (x = " << v.x 
+        << ", y = " << v.y 
+        << ", z = " << v.z << ")"
+        << std::endl;
+
+        std::cout << "    - matrix function: Unadded rotation vector is (x = " << q.x 
+        << ", y = " << q.y 
+        << ", z = " << q.z
+        << ", w = " << q.w << ")"
+        << std::endl;
+    }
+
+    geometry_msgs::Transform transform;
+    transform.translation = v;
+    transform.rotation = q;
+
+    if(debug)
+    {
+        std::cout << "    - matrix function: Return translation vector is (x = " << transform.translation.x 
+        << ", y = " << transform.translation.y 
+        << ", z = " << transform.translation.z << ")"
+        << std::endl;
+    }
+
+    return transform;
+}
+
 class PclAligner : public IAligner
 {
     public:
@@ -58,7 +129,7 @@ class PclAligner : public IAligner
          * @param map_ pointer to local_map
          * @return nuthin currently. may need to return alignment information
          */
-        Eigen::Matrix4d align(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, std::shared_ptr<diviner::IMap> map_) override;
+        geometry_msgs::Transform align(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, std::shared_ptr<diviner::IMap> map_) override;
 
         /**
          * 
@@ -83,7 +154,7 @@ class PclAligner : public IAligner
          * @param rotation_vector rotation vector from icp
          * @return maybe updated vehicle pose vector?
          */
-        void update_curr_pose(const diviner::Alignment vehicle_alignment, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> veh_pose) override;
+        void update_curr_pose(const geometry_msgs::Transform vehicle_alignment, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> veh_pose) override;
 
     private:
         PclAlignerParams params_;

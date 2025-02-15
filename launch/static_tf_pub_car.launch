@@ -1,0 +1,44 @@
+<launch>
+    <!-- The arguments are in the order "x, y, z, yaw, pitch, roll, source frame, target frame"
+    HOWEVER, the rotations are applied in the order of roll, pitch, yaw!-->
+
+    <!--This file defines all the static transforms for AutoDrive Year 2. The only transform missing is from map to gnss1.
+    This transform is not included here because it is dynamic-->
+
+    <!--camera1 frame has X+ going right and Y+ going down-->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_camera1_tf" args="1.6 -0.0762 1.4351 -1.5708 0 -1.5708 base_link camera1" />
+
+    <!--cepton2 frame has Y+ going forward and X+ going right-->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_cepton2_tf" args="1.6256 0.0254 1.4478 -1.5708 0 0 base_link cepton2" />
+    
+    <!--base_link frame has X+ going forward and Y+ going right. The gnss1 frame has Y+ going forward and X+ going right-->
+    <!--The GNSS has a physical yaw displacement from base_link BUT, where we subscribe to /novatel/oem7/odom, the driver automatically
+    rotates the frame to align with base_link to adhere with ROS standards-->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="gnss1_to_base_link_tf" args="-0.635 0 -1.778 0 0 0 gnss1 base_link" />
+    
+    <!--vehicle_center frame has Y+ going forward and X+ going right-->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_vehicle_center_tf" args="1.3614 0 0 -1.5708 0 0 base_link vehicle_center" />
+    
+    <!--vehicle_forward frame has Y+ going forward and X+ going right.-->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_vehicle_forward_tf" args="3.58 0 0 -1.5708 0 0 base_link vehicle_front" />
+
+    <!--Transform that represents the front, left corner of the car-->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_vehicle_fl" args="4.5 1.5 0 -1.5708 0 0 base_link vehicle_front_left" />
+
+    <!--Transform that represents the front, right of the car-->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_vehicle_fr" args="4.5 -1.5 0 -1.5708 0 0 base_link vehicle_front_right" />
+
+    <!--Transform that represents the back, right corner of the car-->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_vehicle_br" args="-1.5 -1.5 0 -1.5708 0 0 base_link vehicle_back_right" />
+
+    <!--Transform that represents the back, left corner of the car-->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_vehicle_bl" args="-1.5 1.5 0 -1.5708 0 0 base_link vehicle_back_left" />
+
+    <!-- MCity-->
+    <!--world frame uses ENU (X+ going east and Y+ going north) and is in the lower-left corner of the UTM zone-->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="world_to_map" args ="277282.471 4686456.605 0 0 0 0 world map"/>
+
+    <!-- Lot 24 -->
+    <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="world_to_map" args ="382504.445 5218475.187 0 0 0 0 world map"/> -->
+    
+</launch>

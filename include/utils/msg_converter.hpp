@@ -43,14 +43,18 @@ class MsgConverter
         // Convert to PCL PointXYZI
         void to_pointxyzi(std::shared_ptr<std::vector<diviner::CeptonPoint>> cepton_cloud_, std_msgs::Header &header, pcl::PointCloud<diviner::PointStamped>::Ptr current_scan_)
         {
-            std::cout << "    - to_pointxyzi: Starting pcl converter" << std::endl;
+            if(params_.debug)
+            {
+                std::cout << "    - to_pointxyzi: Starting pcl converter" << std::endl;
+            }
 
             diviner::PointStamped pcl_point;
 
             if(params_.debug)
             {
                 std::cout << "    - to_pointxyzi: time stamp:" << header.stamp << std::endl;
-                std::cout << "    - to_pointxyzi: time stamp (in nsec):" << header.stamp.toNSec() << std::endl;            }
+                std::cout << "    - to_pointxyzi: time stamp (in nsec):" << header.stamp.toNSec() << std::endl;
+            }
             
             current_scan_->header.frame_id = header.frame_id;
             current_scan_->header.stamp = header.stamp.toNSec();
@@ -70,13 +74,19 @@ class MsgConverter
                 std::cout << "    - to_pointxyzi: current stamp: " << current_scan_->header.stamp << std::endl;
             }
 
-            std::cout << "    - to_pointxyzi: Finished pcl converter" << std::endl;
+            if(params_.debug)
+            {
+                std::cout << "    - to_pointxyzi: Finished pcl converter" << std::endl;
+            }
         }
 
         // Convert from ROS Sensor msg to Cepton point holder
         void from_ros(sensor_msgs::PointCloud2ConstPtr input_cloud, std::shared_ptr<std::vector<diviner::CeptonPoint>> cepton_cloud_, std_msgs::Header &cloud_header)
         {
-            std::cout << "    - from_ros: Starting ROS Conversion" << std::endl;
+            if(params_.debug)
+            {
+                std::cout << "    - from_ros: Starting ROS Conversion" << std::endl;
+            }
 
             // Create temp holder point
             diviner::CeptonPoint curr_point;
@@ -184,9 +194,8 @@ class MsgConverter
             if(params_.debug)
             {
                 std::cout << "    - from_ros: " << cloud_header;
+                std::cout << "    - from_ros: Finished ROS Conversion" << std::endl;
             }      
-
-            std::cout << "    - from_ros: Finished ROS Conversion" << std::endl;
         }
 
 };

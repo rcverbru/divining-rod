@@ -21,11 +21,16 @@ struct ConstantVestimatorParams
 inline
 Eigen::Vector3d logSO3(const Eigen::Matrix3d & R)
 {
+    bool debug = false;
+    
     double cos_theta = (R.trace() - 1) / 2.0;
-    std::cout << "    - logSO3: Cos Theta " << cos_theta << std::endl;
-
     double theta = acos(cos_theta);
-    std::cout << "    - logSO3: Theta " << theta << std::endl;
+
+    if(debug)
+    {
+        std::cout << "    - logSO3: Cos Theta " << cos_theta << std::endl;
+        std::cout << "    - logSO3: Theta " << theta << std::endl;
+    }
 
     if (theta < 1e-6) {
         return Eigen::Vector3d::Zero();  // No rotation case

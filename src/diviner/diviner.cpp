@@ -30,6 +30,11 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
     {
         vestimator_->estimate(velocities, gnss_to_map_, *veh_pose);
 
+        if(velocities.size() > 3)
+        {
+            velocities.pop_back();
+        }
+
         if(debug_)
         {
             std::cout << "- diviner: Finished estimating velocity" << std::endl;
@@ -139,6 +144,10 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
 
     // Set up for next step
     first_scan = false;
+    if(veh_pose->size() > 3)
+    {
+        veh_pose->pop_back();
+    }
 
     std::cout << "- diviner: Done with stepping" << std::endl;
 }

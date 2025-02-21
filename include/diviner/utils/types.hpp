@@ -24,6 +24,7 @@
 
 // Other includes
 #include <cmath>
+#include <geometry_msgs/PoseStamped.h>
 
 struct EIGEN_ALIGN16 Point
 {
@@ -104,6 +105,12 @@ struct Alignment
 {
     Eigen::Matrix4d transformation_matrix;
     geometry_msgs::TransformStamped transform;
+};
+
+struct synced_msgs
+{
+    geometry_msgs::PoseStamped gps;
+    pcl::PointCloud<diviner::PointStamped>::Ptr cloud;
 };
 
 // struct LidarPoint

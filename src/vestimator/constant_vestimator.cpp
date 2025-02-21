@@ -9,18 +9,20 @@ void ConstantVestimator::estimate(std::vector<diviner::Velocity> & velocities, g
     if(params_.debug)
     {
         std::cout << "  - vestimate: Starting estimate" << std::endl;
+        
+        // find memory leak size :)
+        std::cout << "  - vestimate: incoming vector size: " << veh_pose.size() << std::endl;
     }
-
-    // find memory leak size :)
-    int num_point = veh_pose.size();
-    std::cout << "  - vestimate: incoming vector size: " << num_point << std::endl;
 
     // set std::out precision to high enough that we can see reeeeeaaaaallly small number changes
     std::cout << std::setprecision(13);
 
-    // mini visual check to make sure the points aren't exactly the same
-    std::cout << "  - vestimate: x0: " << veh_pose[0].pose.position.x << std::endl;
-    std::cout << "  - vestimate: x1: " << veh_pose[0].pose.position.x << std::endl;
+    if(params_.debug)
+    {
+        // mini visual check to make sure the points aren't exactly the same
+        std::cout << "  - vestimate: x0: " << veh_pose[0].pose.position.x << std::endl;
+        std::cout << "  - vestimate: x1: " << veh_pose[0].pose.position.x << std::endl;
+    }
 
     // create p (previous) translation vectors
     p.x = veh_pose[0].pose.position.x - veh_pose[1].pose.position.x;
@@ -59,15 +61,18 @@ void ConstantVestimator::estimate(std::vector<diviner::Velocity> & velocities, g
         }
     }
 
-    std::cout << "before transpose" << std::endl;
+    // std::cout << "before transpose" << std::endl;
     // R_t_2 = R_t_2.transpose();
 
     linear_velocity = R_t_2.transpose() * (t_p - t_pp);
     linear_velocity = linear_velocity / params_.scan_time;
     
-    std::cout << "  - vestimate: Linear velocity is (x: " << linear_velocity[0] 
-    << ", y: " << linear_velocity[1]
-    << ", z: " << linear_velocity[2] << ")" << std::endl;
+    if(params_.debug)
+    {
+        std::cout << "  - vestimate: Linear velocity is (x: " << linear_velocity[0] 
+        << ", y: " << linear_velocity[1]
+        << ", z: " << linear_velocity[2] << ")" << std::endl;    
+    }
     // std::cout << "or " << sqrt((linear_velocity[0])^2 + (linear_velocity[1])^2 + (linear_velocity[2])^2) << " m/s^2." << std::endl;
 
     // Time for rotational velocity
@@ -94,9 +99,12 @@ void ConstantVestimator::estimate(std::vector<diviner::Velocity> & velocities, g
     // Calculate angular velocity by log/scan time
     Eigen::Vector3d angular_velocity = upper/0.01;
 
-    std::cout << "  - vestimate: Linear velocity is (x: " << angular_velocity[0] 
-    << ", y: " << angular_velocity[1]
-    << ", z: " << angular_velocity[2] << ")" << std::endl;
+    if(params_.debug)
+    {
+        std::cout << "  - vestimate: Angular velocity is (x: " << angular_velocity[0] 
+        << ", y: " << angular_velocity[1]
+        << ", z: " << angular_velocity[2] << ")" << std::endl;    
+    }
 
     estimated_velocity.linear.x = linear_velocity[0];
     estimated_velocity.linear.y = linear_velocity[1];
@@ -105,15 +113,18 @@ void ConstantVestimator::estimate(std::vector<diviner::Velocity> & velocities, g
     estimated_velocity.angular.y = angular_velocity[1];
     estimated_velocity.angular.z = angular_velocity[2];
 
-    // std::cout << "Linear x: " << xi.linear.x << std::endl;
-    // std::cout << "Linear y: " << xi.linear.y << std::endl;
-    // std::cout << "Linear z: " << xi.linear.z << std::endl;
-    // std::cout << "Angular x: " << xi.angular.x << std::endl;
-    // std::cout << "Angular y: " << xi.angular.y << std::endl;
-    // std::cout << "Angular z: " << xi.angular.z << std::endl;
+    if(params_.debug)
+    {
+        std::cout << "Linear x: " << linear_velocity[0] << std::endl;
+        std::cout << "Linear y: " << linear_velocity[1] << std::endl;
+        std::cout << "Linear z: " << linear_velocity[2] << std::endl;
+        std::cout << "Angular x: " << angular_velocity[0] << std::endl;
+        std::cout << "Angular y: " << angular_velocity[1] << std::endl;
+        std::cout << "Angular z: " << angular_velocity[2] << std::endl;    
+    }
 
     // Add Velocity to vector
-    velocities.push_back(estimated_velocity);
+    velocities.emplace(velocities.begin(), estimated_velocity);
 
     if(params_.debug)
     {

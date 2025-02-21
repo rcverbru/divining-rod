@@ -23,7 +23,7 @@ struct OctreeMapParams
     double octree_resolution = 1;
     double max_distance = 40;
     bool output_map = false;
-    bool debug = true;
+    bool debug = false;
 };
 
 class OctreeMap : public IMap

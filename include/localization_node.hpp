@@ -4,7 +4,7 @@
 // Utils
 #include <utils/msg_converter.hpp>
 #include <utils/switcher.hpp>
-#include <utils/sync-er.hpp>
+#include <utils/syncer.hpp>
 
 // Diviner Includes
 #include <diviner/diviner.hpp>
@@ -130,7 +130,7 @@ struct LocalizationNodeParams
     
     // publishers
     std::string local_map_topic = "local_map"; // topic for visualizing local map
-    std::string position_topic = "position"; // localization based position
+    std::string gps_pose_topic = "gps_pose"; // localization based position
     std::string localization_pose_topic = "estimated_pose"; // replaces above...
     std::string map_tf_topic = "/vehicle_pose"; // overwrite map tf topic
     
@@ -150,6 +150,7 @@ struct LocalizationNodeParams
     std::string gnss_frame = "gnss1";
 
     double diviner_pub_frequency_hz = 20.0;
+    double syncer_frequency_hz = 20.0;
     double vehicle_transform_frequency_hz = 20.0;
     double map_transform_frequency_hz = 20.0;
 
@@ -201,6 +202,7 @@ class LocalizationNode
         bool localization_running;
         std::mutex lidar_mtx_;
         std::mutex gnss_mtx_;
+        std::mutex syncer_mtx_;
         std::mutex diviner_mtx_;
 
         // ROS Subscribers
@@ -210,14 +212,16 @@ class LocalizationNode
 
         // ROS Publishers
         ros::Publisher localization_map_pub_;
-        ros::Publisher map_tf_pub_;
+        ros::Publisher gps_pub_;
         ros::Publisher pose_pub_;
+        ros::Publisher map_tf_pub_;
         ros::Publisher deskewed_pub_;
         ros::Publisher voxel_pub_;
         ros::Publisher octree_pub_;
 
         // ROS Timers
         ros::Timer diviner_timer_;
+        ros::Timer syncer_timer_;
         ros::Timer vehicle_transform_timer_;
 
         // msg converter
@@ -228,10 +232,12 @@ class LocalizationNode
         // std::shared_ptr<diviner::Switcher> switcher_;
         // diviner::SwitcherParams switcher_params_;
 
-        // // Sync-er
-        // std::shared_ptr<diviner::Syncer> syncer_;
-        // diviner::SyncerParams syncer_params_;
-       
+        // Syncer
+        std::shared_ptr<diviner::Syncer> syncer_;
+        diviner::SyncerParams syncer_params_;
+        std::queue<diviner::synced_msgs> synced_queue_;
+        void syncer_cb(const ros::TimerEvent & event);
+        
         // Setup for interfaces
         std::shared_ptr<diviner::Diviner> diviner_;
         std::shared_ptr<diviner::IAligner> aligner_;

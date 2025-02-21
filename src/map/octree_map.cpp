@@ -5,16 +5,18 @@ namespace diviner
 
 void OctreeMap::add_cloud(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud_)
 {
-    //
-    // if(params_.debug)
-    // {
+    if(params_.debug)
+    {
         std::cout << "  - map: Adding point cloud to map " << std::endl;
-    // }
+    }
 
     // std::cout << "  - map: " << local_map_octree->octreeCanResize() << std::endl;
 
-    std::cout << "  - map: Number of points in pointcloud: " << point_cloud_->size() << std::endl;
-    std::cout << "  - map: Number of voxels in map before adding: " << local_map_octree->getLeafCount() << std::endl;
+    if(params_.debug)
+    {
+        std::cout << "  - map: Number of points in pointcloud: " << point_cloud_->size() << std::endl;
+        std::cout << "  - map: Number of voxels in map before adding: " << local_map_octree->getLeafCount() << std::endl;    
+    }
 
     local_map_octree->setInputCloud(point_cloud_);
     local_map_octree->addPointsFromInputCloud();
@@ -23,9 +25,12 @@ void OctreeMap::add_cloud(const pcl::PointCloud<diviner::PointStamped>::Ptr poin
     {
         local_map_pointcloud->push_back(point);
     }
-    std::cout << "Num points in map cloud: " << local_map_pointcloud->size() << std::endl;
 
-    std::cout << "  - map: Number of voxels in octree " << local_map_octree->getLeafCount() << std::endl;
+    if(params_.debug)
+    {
+        std::cout << "  - map: Num points in map cloud: " << local_map_pointcloud->size() << std::endl;
+        std::cout << "  - map: Number of voxels in octree " << local_map_octree->getLeafCount() << std::endl;    
+    }
 
     if(params_.debug)
     {
@@ -43,8 +48,11 @@ pcl::PointCloud<diviner::PointStamped>::Ptr OctreeMap::get_data()
 {
     pcl::PointCloud<pcl::PointXYZI>::Ptr data_cloud_(new pcl::PointCloud<pcl::PointXYZI>);
 
-    std::cout << "  - map: Before indicies loop" << std::endl;
-    std::cout << "  - map: Test map: " << local_map_octree->getResolution() << std::endl;
+    if(params_.debug)
+    {
+        std::cout << "  - map: Before indicies loop" << std::endl;
+        std::cout << "  - map: Test map: " << local_map_octree->getResolution() << std::endl;    
+    }
     
     if (!local_map_octree) {
         std::cout << "  - map: local_map_octree is null in get_data()" << std::endl;
@@ -53,7 +61,10 @@ pcl::PointCloud<diviner::PointStamped>::Ptr OctreeMap::get_data()
 
 
     // std::cout << local_map_octree->getIndices() << std::endl;
-    std::cout << "Leaf count: " << local_map_octree->getLeafCount() << std::endl;
+    if(params_.debug)
+    {
+        std::cout << "Leaf count: " << local_map_octree->getLeafCount() << std::endl;
+    }
 
     std::vector<diviner::PointStamped, Eigen::aligned_allocator<diviner::PointStamped>> voxel_centers;
     auto index_stuff = local_map_octree->getOccupiedVoxelCenters(voxel_centers);
@@ -65,7 +76,10 @@ pcl::PointCloud<diviner::PointStamped>::Ptr OctreeMap::get_data()
         // local_map_octree.
     }
     
-    std::cout << "Number of Voxel Centers: " << index_stuff << std::endl;
+    if(params_.debug)
+    {
+        std::cout << "Number of Voxel Centers: " << index_stuff << std::endl;
+    }
     // std::cout << "Voxel centers: " << voxel_centers << std::endl;
     
     // Retrieve indices and check validity
@@ -147,7 +161,11 @@ void OctreeMap::trim_map()
     // std::vector<Eigen::Vector3f> voxel_centers;
 
     auto num_voxels = local_map_octree->getOccupiedVoxelCenters(voxel_centers);
-    std::cout << "  - map: Number of voxels in use " << num_voxels << std::endl;
+    
+    if(params_.debug)
+    {
+        std::cout << "  - map: Number of voxels in use " << num_voxels << std::endl;
+    }
 
     // for(int i = 0; i < num_voxels; i++)
     // {

@@ -11,45 +11,45 @@
 
     <!-- Running State -->
     <arg name="running_state" default="localization"/> <!-- gnss, localization, switching, or both-->
-    <arg name="debug" default="true"/>
+    <arg name="debug" default="false"/>
     <arg name="lidar_cb_debug" default="false"/>
     <arg name="gnss_cb_debug" default="false"/>
     <arg name="topic_debug" default="false"/>
 
     <!-- Diviner -->
-    <arg name="diviner_debug" default="true"/>
+    <arg name="diviner_debug" default="false"/>
 
     <!-- Aligners -->
     <arg name="aligner" default="pclaligner"/>
     <arg name="max_num_iterations" default="500"/>
     <arg name="convergence_criterion" default="0.0001"/>
-    <arg name="aligner_debug" default="true"/>
+    <arg name="aligner_debug" default="false"/>
 
     <!-- Deskewers -->
     <arg name="deskewer" default="exampledeskewer"/>
-    <arg name="deskewer_debug" default="true"/>
+    <arg name="deskewer_debug" default="false"/>
     
     <!-- Filters -->
     <arg name="leaf_size" default="[0.1, 1.5]"/>
     <arg name="filter" default="voxelfilter"/>
-    <arg name="filter_debug" default="true"/>
+    <arg name="filter_debug" default="false"/>
     
     <!-- Mappers -->
     <arg name="max_distance" default="30"/>
     <arg name="max_points_per_voxel" value="20"/>
     <arg name="map" default="octreemap"/>
-    <arg name="map_debug" default="true"/>
+    <arg name="map_debug" default="false"/>
     
     <!-- Vestimators -->
     <arg name="vestimator" default="constant"/>
-    <arg name="vestimator_debug" default="true"/>
+    <arg name="vestimator_debug" default="false"/>
 
     <!-- Utils -->
     <arg name="max_sync_err" default="0.5"/>
     <arg name="point_type" default="pointxyzi"/>
     <arg name="converter_debug" default="false"/>
     <arg name="switcher_debug" default="false"/>
-    <arg name="syncer_debug" default="false"/>
+    <arg name="syncer_debug" default="true"/>
 
     <node name="localization_node" pkg="localization" type="localization_node" respawn="false" output="screen" cwd="ROS_HOME">
         

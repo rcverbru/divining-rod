@@ -299,8 +299,8 @@ LocalizationNode::LocalizationNode(
     converter_params_.point_type = ln_params_.point_type;
     converter_ = std::make_shared<diviner::MsgConverter>(converter_params_);
 
-    // syncer_params_.debug = ln_params.debug;
-    // syncer__ = std::make_shared<diviner::Syncer>(syncer_params_);
+    syncer_params_.debug = ln_params.syncer_debug;
+    syncer_ = std::make_shared<diviner::Syncer>(syncer_params_);
 
 
     // Subscribers
@@ -310,7 +310,7 @@ LocalizationNode::LocalizationNode(
 
     // Publishers
     localization_map_pub_ = node_->advertise<sensor_msgs::PointCloud2>(ln_params_.local_map_topic, 1, true);
-    // position_pub_ = node_->advertise<geometry_msgs::Pose>(ln_params_.position_topic, 1, true);
+    gps_pub_ = node_->advertise<geometry_msgs::Pose>(ln_params_.gps_pose_topic, 1, true);
     pose_pub_ = node_->advertise<geometry_msgs::PoseStamped>(ln_params_.localization_pose_topic, 1, true);
     map_tf_pub_ = node_->advertise<geometry_msgs::Pose>(ln_params_.map_tf_topic, 1);
 
@@ -336,6 +336,9 @@ LocalizationNode::LocalizationNode(
     }
 
     // Timers
+    diviner_timer_ = node_->createTimer(ros::Duration(1.0 / ln_params_.diviner_pub_frequency_hz), &LocalizationNode::diviner_cb, this);
+
+    syncer_timer_ = node_->createTimer(ros::Duration(1.0 / ln_params_.syncer_frequency_hz), &LocalizationNode::syncer_cb, this);
     // vehicle_transform_timer_ = node_->createTimer(ros::Duration(1.0 / ln_params_.vehicle_transform_frequency_hz), &LocalizationNode::transform_cb, this);
 
 }
@@ -354,7 +357,11 @@ void LocalizationNode::update_transforms(geometry_msgs::PoseStamped &vehicle_loc
         // need to transform from lidar -> gnss -> world frame
         // don't need to transform if pulling directly from gps
         geometry_msgs::Point position;
+        std::cout << "before transform " << vehicle_location << std::endl;
         tf2::doTransform(vehicle_location.pose.position, position, world_to_map_);
+        std::cout << "after transform " << vehicle_location << std::endl;
+
+        std::cout << "Position pulled: " << position << std::endl;
 
         // We do not need to convert to UTM because the Novatel OEM7 driver does it for us:
         // https://github.com/novatel/novatel_oem7_driver/blob/master/src/novatel_oem7_driver/src/bestpos_handler.cpp#L723
@@ -367,14 +374,19 @@ void LocalizationNode::update_transforms(geometry_msgs::PoseStamped &vehicle_loc
         transform_stamped_.transform.translation.z = position.z;
         transform_stamped_.transform.rotation = vehicle_location.pose.orientation;
 
-        updateVehiclePose(vehicle_location.pose, transform_stamped_, gnss_to_base_link_);
+        std::cout << "after updates" << std::endl;
+        // updateVehiclePose(vehicle_location.pose, transform_stamped_, gnss_to_base_link_);
     }
 
     // Publish separate vehicle_pose message to send to Dspace
     map_tf_pub_.publish(vehicle_location);
+    std::cout << "published" << std::endl;
 
     // Publish transform to be used by everyone else
+    std::cout << transform_stamped_ << std::endl;
+
     tf_br_->sendTransform(transform_stamped_);
+    std::cout << "tf not broadcasted" << std::endl;
 }
 
 void LocalizationNode::transform_cb(const ros::TimerEvent & event)
@@ -434,32 +446,43 @@ void LocalizationNode::diviner_cb(const ros::TimerEvent & event)
         if(map_ != nullptr)
         {
             std::cout << "diviner_cb: Map size: " << map_->capacity() << std::endl;
-            // Place new pose at index 0 and then remove the oldest pose
-            // veh_pose.emplace(veh_pose.begin(), vehicle_poses_queue_.front());
-            // std::cout << "diviner_cb: Added pose to vector from queue. " << vehicle_poses_queue_.size() << std::endl;
-            // vehicle_poses_queue_.pop();
 
-            // // Remove oldest vehicle pose from vector
-            // if(veh_pose.size() == 4)
-            // {
-            //     veh_pose.pop_back();
-            //     std::cout << "diviner_cb: removing 1 pose from pose vector... " << std::endl;
-            // }
-            
-            // std::cout << "diviner_cb: Num poses in vector: " << veh_pose.size() << std::endl;
+            if(!synced_queue_.empty())
+            {
+                //Do what ryan commands
+                // Place new pose at index 0 and then remove the oldest pose
+                // veh_pose.emplace(veh_pose.begin(), vehicle_poses_queue_.front());
+                // std::cout << "diviner_cb: Added pose to vector from queue. " << vehicle_poses_queue_.size() << std::endl;
+                // vehicle_poses_queue_.pop();
 
-            // might need to move this somewhere else depending how well this works...
-            std::cout << "diviner_cb: Starting Diviner Step." << std::endl;
-            diviner_->step(current_scan_, world_to_map_, cepton_to_base_link_, veh_pose);
+                // // Remove oldest vehicle pose from vector
+                // if(veh_pose.size() == 4)
+                // {
+                //     veh_pose.pop_back();
+                //     std::cout << "diviner_cb: removing 1 pose from pose vector... " << std::endl;
+                // }
+                
+                // std::cout << "diviner_cb: Num poses in vector: " << veh_pose.size() << std::endl;
+    
+                // might need to move this somewhere else depending how well this works...
+                std::cout << "diviner_cb: Starting Diviner Step." << std::endl;
+                diviner_->step(current_scan_, world_to_map_, cepton_to_base_link_, veh_pose);
 
-            std::cout << "before: \n" << veh_pose->front().pose << std::endl;
-            updateVehiclePose(veh_pose->front().pose, transform_stamped_, gnss_to_base_link_);
-            std::cout << "after: \n" << veh_pose->front().pose << std::endl;
+                std::cout << "num veh poses: " << veh_pose->size() << std::endl;
+                std::cout << "before: \n" << veh_pose->front().pose << std::endl;
+                LocalizationNode::update_transforms(veh_pose->front());
+                std::cout << "after: \n" << veh_pose->front().pose << std::endl;
 
-            sensor_msgs::PointCloud2 output;
-            pcl::toROSMsg(*map_->get_data(), output);
-            localization_map_pub_.publish(output);
-            pose_pub_.publish(veh_pose->front());
+                sensor_msgs::PointCloud2 output;
+                pcl::toROSMsg(*map_->get_data(), output);
+                localization_map_pub_.publish(output);
+                pose_pub_.publish(veh_pose->front());
+            }
+            else
+            {
+                std::cout << "diviner_cb: Messages not synced... Need to wait for synced messages." << std::endl;
+            }
+        
             
             if(ln_params_.topic_debug)
             {
@@ -493,6 +516,7 @@ void LocalizationNode::lidar_cb(const sensor_msgs::PointCloud2ConstPtr input_clo
 
     if(current_scan_ != nullptr)
     {
+        //add stuff here
         current_scan_->clear();
         if(ln_params_.lidar_cb_debug)
         {
@@ -525,9 +549,11 @@ void LocalizationNode::lidar_cb(const sensor_msgs::PointCloud2ConstPtr input_clo
     
     if(ln_params_.lidar_cb_debug)
     {
-        std::cout << "- lidar_cb: Current queue has " << lidar_queue_.size() << " scans in queue." << std::endl;
+    
+    std::cout << "- lidar_cb: Current queue has " << lidar_queue_.size() << " scans in queue." << std::endl;
     }
-
+    std::cout << "- lidar_cb: Current scan has time stamp: " << lidar_queue_.back()->header.stamp<< std::endl;
+    
     lidar_mtx_.unlock();
 }
 
@@ -576,7 +602,51 @@ void LocalizationNode::gnss_cb(const diviner::GnssType gnss_pose)
     gnss_mtx_.unlock();
 }
 
-// can probably drop this as we don't use the imu topic
+void LocalizationNode::syncer_cb(const ros::TimerEvent & event)
+{
+    syncer_mtx_.lock();
+    
+    while (!lidar_queue_.empty() || !vehicle_poses_queue_.empty())
+    {
+      
+        if(ln_params_.debug)
+        {
+            std::cout << "syncer_cb: Syncer Syncing" << std::endl;
+        }  
+
+        if (!lidar_queue_.empty() && !vehicle_poses_queue_.empty())
+        {
+        diviner::synced_msgs synced = syncer_->sync(&lidar_queue_,vehicle_poses_queue_);
+        synced_queue_.push(synced);
+        }
+        
+        if (!lidar_queue_.empty() && vehicle_poses_queue_.empty())
+        {
+            
+            //Do something if lidar is NOT empty and gps is empty
+ 
+        } 
+        else if (lidar_queue_.empty() && !vehicle_poses_queue_.empty()) 
+        {
+
+            //Do something if lidar is empty and gps is NOT empty
+            //Temporarily dump extra vehicle poses
+            //RYAN this does something but I have no clue if it is what it should 
+            //The idea is too dump gps queue if no new lidar scans come in when the gps scans come in, but it might be 
+            //doing it very wrong
+            while(!vehicle_poses_queue_.empty()){
+            vehicle_poses_queue_.pop();
+            std::cout << "syncer_cb: Dumping" << std::endl;
+            }
+        }
+
+    }
+    
+
+
+    syncer_mtx_.unlock();
+}
+
 void LocalizationNode::imu_cb(const novatel_oem7_msgs::CORRIMU msg)
 {
     // Take in imu data

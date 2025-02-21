@@ -31,7 +31,7 @@ void PclAligner::initialize(std::shared_ptr<std::vector<geometry_msgs::PoseStamp
 
         new_pose.header.stamp = ros::Time::now();
 
-        veh_pose->push_back(new_pose);
+        veh_pose->emplace(veh_pose->begin(), new_pose);
         std::cout << "  - aligner: Added 0 starting pose to vehicle location vector." << std::endl;
     }
 }
@@ -64,10 +64,18 @@ geometry_msgs::Transform PclAligner::align(const pcl::PointCloud<diviner::PointS
 
         if(icp.hasConverged())
         {
-            std::cout << "  - aligner: ICP has converged, score is " << icp.getFitnessScore() << std::endl;
-            std::cout << "  - aligner: ICP transformation " << params_.num_iterations << " : cloud_icp -> local_map" << std::endl;
+            if(params_.debug)
+            {
+                std::cout << "  - aligner: ICP has converged, score is " << icp.getFitnessScore() << std::endl;
+                std::cout << "  - aligner: ICP transformation " << params_.num_iterations << " : cloud_icp -> local_map" << std::endl;    
+            }
+
             transformation_matrix = icp.getFinalTransformation().cast<double>();
-            print4x4Matrix (transformation_matrix);
+            
+            if(params_.debug)
+            {
+                print4x4Matrix (transformation_matrix);
+            }
         }
         else
         {
@@ -127,10 +135,13 @@ geometry_msgs::Transform PclAligner::align(const pcl::PointCloud<diviner::PointS
 
     geometry_msgs::Transform transform = matrix_to_transform(transformation_matrix);
 
-    std::cout << "  - aligner: Translation vector is (x = " << transform.translation.x 
-    << ", y = " << transform.translation.y 
-    << ", z = " << transform.translation.z << ")"
-    << std::endl;
+    if(params_.debug)
+    {
+        std::cout << "  - aligner: Translation vector is (x = " << transform.translation.x 
+        << ", y = " << transform.translation.y 
+        << ", z = " << transform.translation.z << ")"
+        << std::endl;    
+    }
 
     return transform;
 }
@@ -154,7 +165,7 @@ void PclAligner::update_curr_pose(const geometry_msgs::Transform icp_alignment, 
     }
     
     geometry_msgs::PoseStamped previous_pose;
-    previous_pose = veh_pose->back();
+    previous_pose = veh_pose->front();
 
     if(params_.debug)
     {
@@ -192,7 +203,7 @@ void PclAligner::update_curr_pose(const geometry_msgs::Transform icp_alignment, 
         << std::endl;
     }
 
-    veh_pose->push_back(new_pose);
+    veh_pose->emplace(veh_pose->begin(), new_pose);
 
     // if(veh_pose->size() > 3)
     // {

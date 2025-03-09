@@ -17,6 +17,7 @@ int main (int argc, char** argv)
 
     // Collecting ROS Timers
     node->getParam("diviner_pub_frequency_hz", ln_params.diviner_pub_frequency_hz);
+    node->getParam("syncer_pub_frequency_hz", ln_params.syncer_pub_frequency_hz);
 
     // Collect LocalizationNode Parameters
     node->getParam("running_state", ln_params.running_state);
@@ -55,7 +56,7 @@ int main (int argc, char** argv)
     node->getParam("vestimator_debug", ln_params.vestimator_debug);
 
     // Utils
-    node->getParam("max_sync_err", ln_params.max_sync_err);
+    node->getParam("max_sync_err_s", ln_params.max_sync_err_s);
     node->getParam("point_type", ln_params.point_type);
     node->getParam("switcher_debug", ln_params.switcher_debug);
     node->getParam("syncer_debug", ln_params.syncer_debug);

@@ -7,6 +7,11 @@
 #include <pcl/registration/icp.h>
 #include <pcl/console/time.h>
 
+#include <tf2/transform_datatypes.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2/convert.h>
+
 #include <vector>
 #include <list>
 #include <memory>
@@ -16,10 +21,10 @@ namespace diviner
 
 struct PclAlignerParams
 {
-    std::string alignment_state = "set"; // set (use set iterations) or automatic (auto find alignment)
+    std::string alignment_state = "automatic"; // set (use set iterations) or automatic (auto find alignment)
     int num_iterations = 2;
-    int max_num_iterations = 50;
-    double convergence_criterion = 0.05;
+    int max_num_iterations = 10;
+    double convergence_criterion = 0.1;
     bool debug = true;
 };
 
@@ -105,6 +110,14 @@ geometry_msgs::Transform matrix_to_transform(Eigen::Matrix4d matrix)
     return transform;
 }
 
+inline
+tf2::Quaternion transform_to_tf2(geometry_msgs::Quaternion quaternion)
+{
+    tf2::Quaternion tf2_quaternion;
+    tf2::fromMsg(quaternion, tf2_quaternion);
+    return tf2_quaternion;
+}
+
 class PclAligner : public IAligner
 {
     public:
@@ -135,7 +148,7 @@ class PclAligner : public IAligner
          * 
          * 
          */
-        void find_tf() override;
+        void findTf() override;
 
         /**
          * Takes in the translation and rotation matrix from alignment and updates the point cloud to match with the changes
@@ -143,7 +156,7 @@ class PclAligner : public IAligner
          * @param point_cloud_ pointer to filtered scan that needs to be transformed
          * @param alignment translational and rotational matrix from aligner->align function
          */
-        void update_points(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, diviner::Alignment alignment) override {};
+        void updatePoints(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, diviner::Alignment alignment) override;
 
         /**
          * Takes in the rotation and translation vectors from icp and updates
@@ -154,7 +167,7 @@ class PclAligner : public IAligner
          * @param rotation_vector rotation vector from icp
          * @return maybe updated vehicle pose vector?
          */
-        void update_curr_pose(const geometry_msgs::Transform vehicle_alignment, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> veh_pose) override;
+        void updateCurrPose(const geometry_msgs::Transform vehicle_alignment, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> veh_pose) override;
 
     private:
         PclAlignerParams params_;

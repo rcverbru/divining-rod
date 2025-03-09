@@ -20,15 +20,17 @@ class ExampleMap : public IMap
         params_(params.child_params){};
         ~ExampleMap() = default;
 
-        void add_point() {};
+        void add_cloud(const pcl::PointCloud<diviner::PointStamped>::Ptr input_cloud) override {};
 
-        void add_cloud(const pcl::PointCloud<diviner::PointStamped>::Ptr input_cloud, std::shared_ptr<diviner::IMap> map_) override {};
+        pcl::PointCloud<diviner::PointStamped>::Ptr get_data() override;
 
-        void clear_map() override {};
+        void get_voxels();
+
+        void clear_map() override;
         
-        int capacity() override {};
-
-        size_t size() override {};
+        int capacity() override;
+        
+        size_t size() override;
 
         /**
          * Trims down the current local map by removing points 

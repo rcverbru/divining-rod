@@ -7,6 +7,7 @@
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <std_msgs/Header.h>
+#include <std_msgs/Time.h>
 
 #include <sensor_msgs/PointCloud2.h>
 #include <pcl_conversions/pcl_conversions.h>
@@ -21,6 +22,7 @@ namespace diviner
 struct SyncerParams
 {
     //
+    double max_sync_err_s = 0.05;
     bool debug = true;
 };
 
@@ -30,11 +32,17 @@ class Syncer
         explicit Syncer(const SyncerParams & params) : params_(params){};
         ~Syncer() = default;
         
-        // I want to make this the "wrapper" for converting msgs.
-        diviner::synced_msgs sync(std::queue<pcl::PointCloud<diviner::PointStamped>::Ptr>* cloud_, std::queue<geometry_msgs::PoseStamped>& vehicle_poses_queue_);
+        diviner::SyncedMsgs sync(std::queue<pcl::PointCloud<diviner::PointStamped>> &cloud_, std::queue<geometry_msgs::PoseStamped> &vehicle_poses_queue_);
     
     private:
         SyncerParams params_;
+
+
+        ros::Time cloud_timestamp;
+        double prev_time_diff;
+
+        pcl::PointCloud<diviner::PointStamped> cloud;
+
 
 };
 

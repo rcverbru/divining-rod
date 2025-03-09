@@ -3,7 +3,7 @@
 namespace diviner
 {
 
-void ConstantVestimator::estimate(std::vector<diviner::Velocity> & velocities, geometry_msgs::TransformStamped transform_, std::vector<geometry_msgs::PoseStamped> &veh_pose)
+void ConstantVestimator::estimate(std::vector<diviner::Velocity> & velocities, std::vector<geometry_msgs::PoseStamped> &veh_pose)
 {
     // Find Current Estimated Velocity
     if(params_.debug)

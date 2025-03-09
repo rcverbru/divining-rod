@@ -52,7 +52,7 @@ class IAligner
          * @param tbd
          * @return current tf
          */
-        virtual void find_tf() = 0;
+        virtual void findTf() = 0;
 
         /**
          * Updates the points in the point cloud to match with their aligned locations in the map
@@ -60,7 +60,7 @@ class IAligner
          * @param point_cloud Pointer to the current scan
          * @param alignment alignment vector/matrix 
          */
-        virtual void update_points(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, diviner::Alignment alignment) = 0;
+        virtual void updatePoints(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, diviner::Alignment alignment) = 0;
 
         /**
          * Takes in the rotation and translation vectors from icp and updates
@@ -71,7 +71,7 @@ class IAligner
          * @param rotation_vector rotation vector from icp
          * @return maybe updated vehicle pose vector?
          */
-        virtual void update_curr_pose(const geometry_msgs::Transform vehicle_alignment, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> updated_vehicle_position) = 0;
+        virtual void updateCurrPose(const geometry_msgs::Transform vehicle_alignment, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> updated_vehicle_position) = 0;
 
     private:
         IAlignerParams params_;

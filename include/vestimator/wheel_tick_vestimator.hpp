@@ -20,7 +20,7 @@ class WheelTickVestimator : public IVestimator
         params_(params.child_params){};
         ~WheelTickVestimator() = default;
 
-        void estimate(std::vector<diviner::Velocity> & velocities, geometry_msgs::TransformStamped transform, std::vector<geometry_msgs::PoseStamped> &veh_pose) override;
+        void estimate(std::vector<diviner::Velocity> & velocities, std::vector<geometry_msgs::PoseStamped> &veh_pose) override;
         
     private:
         WheelTickVestimatorParams params_;

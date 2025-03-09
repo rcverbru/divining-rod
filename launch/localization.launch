@@ -1,5 +1,4 @@
 <launch>
-
     <!-- Topics -->
     <arg name="lidar_topic" default="/cepton2/points_221339"/>
     <arg name="wheel_tick_topic" default="/yes"/>
@@ -8,6 +7,7 @@
 
     <!-- Timers -->
     <arg name="diviner_pub_frequency_hz" default="20.0"/>
+    <arg name="syncer_pub_frequency_hz" default="10.0"/>
 
     <!-- Running State -->
     <arg name="running_state" default="localization"/> <!-- gnss, localization, switching, or both-->
@@ -21,7 +21,7 @@
 
     <!-- Aligners -->
     <arg name="aligner" default="pclaligner"/>
-    <arg name="max_num_iterations" default="500"/>
+    <arg name="max_num_iterations" default="10"/>
     <arg name="convergence_criterion" default="0.0001"/>
     <arg name="aligner_debug" default="false"/>
 
@@ -44,12 +44,16 @@
     <arg name="vestimator" default="constant"/>
     <arg name="vestimator_debug" default="false"/>
 
-    <!-- Utils -->
-    <arg name="max_sync_err" default="0.5"/>
+    <!-- Utils - Converter -->
     <arg name="point_type" default="pointxyzi"/>
     <arg name="converter_debug" default="false"/>
+    
+    <!-- Utils - Switcher -->
     <arg name="switcher_debug" default="false"/>
-    <arg name="syncer_debug" default="true"/>
+    
+    <!-- Utils - Syncer -->
+    <arg name="max_sync_err_s" default="0.05"/>
+    <arg name="syncer_debug" default="false"/>
 
     <node name="localization_node" pkg="localization" type="localization_node" respawn="false" output="screen" cwd="ROS_HOME">
         
@@ -61,6 +65,7 @@
 
         <!-- Timers -->
         <param name="diviner_pub_frequency_hz" value="$(arg diviner_pub_frequency_hz)"/>
+        <param name="syncer_pub_frequency_hz" value="$(arg syncer_pub_frequency_hz)"/>
 
         <!-- Running State -->
         <param name="running_state" value="$(arg running_state)"/>
@@ -96,11 +101,15 @@
         <param name="vestimator" value="$(arg vestimator)"/>
         <param name="vestimator_debug" value="$(arg vestimator_debug)"/>
 
-        <!-- Utils -->
-        <param name="max_sync_err" value="$(arg max_sync_err)"/>
+        <!-- Utils - Converter -->
         <param name="point_type" value="$(arg point_type)"/>
         <param name="converter_debug" value="$(arg converter_debug)"/>
+        
+        <!-- Utils - Convert -->
         <param name="switcher_debug" value="$(arg switcher_debug)"/>
+
+        <!-- Utils - Syncer -->
+        <param name="max_sync_err_s" value="$(arg max_sync_err_s)"/>
         <param name="syncer_debug" value="$(arg syncer_debug)"/>
     </node>
 </launch>

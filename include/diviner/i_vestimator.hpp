@@ -29,9 +29,17 @@ class IVestimator
         /**
          * Estimates speed of vehicle based
          * @param velocities pointer to a vector of velocities
+         * @param veh_pose vector of vehicle poses
          * @return returns the velocity of the vehicle
          */
-        virtual void estimate(std::vector<diviner::Velocity> & velocities, geometry_msgs::TransformStamped transform, std::vector<geometry_msgs::PoseStamped> &veh_pose) = 0;
+        virtual void estimate(std::vector<diviner::Velocity> & velocities, std::vector<geometry_msgs::PoseStamped> &veh_pose) = 0;
+
+        /**
+         * Predicts next location based off of current information
+         * @param velocities pointer to a vector of velocities
+         * @param veh_pose vector of vehicle poses
+         * @return returns the prediciton for the next vehicle location
+         */
 
     private:
         IVestimatorParams params_;

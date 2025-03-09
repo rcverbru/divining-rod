@@ -28,7 +28,7 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
 
     if(veh_pose->size() == 3)
     {
-        vestimator_->estimate(velocities, gnss_to_map_, *veh_pose);
+        vestimator_->estimate(velocities, *veh_pose);
 
         if(velocities.size() > 3)
         {
@@ -39,9 +39,6 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
         {
             std::cout << "- diviner: Finished estimating velocity" << std::endl;
         }
-
-        // Need to make a vehicle position prediction to compare to point cloud alignment
-        //vestimator_->predict(pred_veh_pose);
     }
     else
     {
@@ -67,14 +64,18 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
     // holder idea for dsor if we feel like it (doubtful but the idea is here)
     // preprocessor_->process();
 
-    int num_points = cloud->size();
-    std::cout << "- diviner: num points in point cloud: " << num_points << std::endl;
+    if(debug_)
+    {
+        std::cout << "- diviner: num points in point cloud: " << cloud->size() << std::endl;
+    }
     
     // First downsampling for alignment
     filter_->filter(cloud);
 
-    num_points = cloud->size();
-    std::cout << "- diviner: num points in point cloud after filter: " << num_points << std::endl;
+    if(debug_)
+    {
+        std::cout << "- diviner: num points in point cloud after filter: " << cloud->size() << std::endl;
+    }
 
     // Second Downsampling
     // filter_->filter(cloud);
@@ -109,9 +110,6 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
     // Second downsampling for map
     filter_->filter(cloud);
 
-    // update point pose with alignment info
-    // aligner_->update_points(cloud, vehicle_alignment);
-
     // Add points to map
     map_->add_cloud(cloud);
 
@@ -124,7 +122,7 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
     // blender_->smoothie();
 
     // Update our current position 
-    aligner_->update_curr_pose(alignment_holder, veh_pose);
+    aligner_->updateCurrPose(alignment_holder, veh_pose);
 
     if(debug_)
     {
@@ -132,7 +130,7 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
     }
 
     // Set up car tf to publish to tf topic
-    aligner_->find_tf();
+    aligner_->findTf();
 
     if(debug_)
     {
@@ -141,6 +139,12 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
 
     // Remove points outside of a given radius
     map_->trim_map();
+    
+    // Set up tf to be passed to the broadcaster
+    aligner_->updatePoints(cloud, vehicle_alignment);
+
+    // Need to make a vehicle position prediction to compare to point cloud alignment
+    // vestimator_->predict(pred_veh_pose); Maybe put as aligner?
 
     // Set up for next step
     first_scan = false;

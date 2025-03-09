@@ -39,7 +39,7 @@ class ExampleAligner : public IAligner
          * 
          * 
          */
-        void find_tf() override {};
+        void findTf() override {};
 
         /**
          * Takes in the translation and rotation matrix from alignment and updates the point cloud to match with the changes
@@ -47,7 +47,7 @@ class ExampleAligner : public IAligner
          * @param point_cloud_ pointer to filtered scan that needs to be transformed
          * @param alignment translational and rotational matrix from aligner->align function
          */
-        void update_points(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, diviner::Alignment alignment) override {};
+        void updatePoints(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, diviner::Alignment alignment) override {};
 
         /**
          * Takes in the rotation and translation vectors from icp and updates
@@ -58,7 +58,7 @@ class ExampleAligner : public IAligner
          * @param rotation_vector rotation vector from icp
          * @return maybe updated vehicle pose vector?
          */
-        void update_curr_pose(const geometry_msgs::Transform vehicle_alignment, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> updated_vehicle_position) override {};
+        void updateCurrPose(const geometry_msgs::Transform vehicle_alignment, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> updated_vehicle_position) override {};
 
     private:
         ExampleAlignerParams params_;

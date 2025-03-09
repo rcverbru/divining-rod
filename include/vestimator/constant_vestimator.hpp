@@ -52,7 +52,7 @@ class ConstantVestimator : public IVestimator
         params_(params.child_params){};
         ~ConstantVestimator() = default;
 
-        void estimate(std::vector<diviner::Velocity> & velocities, geometry_msgs::TransformStamped cloud_to_vehicle_, std::vector<geometry_msgs::PoseStamped> &veh_pose) override;
+        void estimate(std::vector<diviner::Velocity> & velocities, std::vector<geometry_msgs::PoseStamped> &veh_pose) override;
 
     private:
         ConstantVestimatorParams params_;

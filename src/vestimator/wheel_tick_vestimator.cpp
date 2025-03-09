@@ -3,7 +3,7 @@
 namespace diviner
 {
 
-void WheelTickVestimator::estimate(std::vector<diviner::Velocity> & velocities, geometry_msgs::TransformStamped, std::vector<geometry_msgs::PoseStamped> &veh_pose)
+void WheelTickVestimator::estimate(std::vector<diviner::Velocity> & velocities, std::vector<geometry_msgs::PoseStamped> &veh_pose)
 {
 
 

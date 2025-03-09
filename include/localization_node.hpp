@@ -26,7 +26,7 @@
 
 // Map Includes
 #include <diviner/i_map.hpp>
-// #include <map/example_map.hpp>
+#include <map/example_map.hpp>
 // #include <map/hash_map.hpp>
 // #include <map/kdtree_map.hpp>
 #include <map/octree_map.hpp>
@@ -48,6 +48,9 @@
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2/transform_datatypes.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/convert.h>
 
 // PCL Lidar Stuff
 #include <sensor_msgs/PointCloud2.h>
@@ -62,6 +65,7 @@
 #include <novatel_oem7_msgs/CORRIMU.h>
 #include <nav_msgs/Odometry.h>
 
+#include <cassert>
 #include <memory>
 #include <mutex>
 #include <chrono>
@@ -71,6 +75,8 @@
 #include <thread>
 #include <vector>
 #include <list>
+
+#define assertm(exp, msg) assert((void(msg), exp))
 
 namespace localization_node
 {
@@ -95,7 +101,7 @@ geometry_msgs::PoseStamped to_pose_stamped(const nav_msgs::Odometry & new_pose)
 };
 
 inline
-ros::Time pclToRosTime(uint64_t pcl_timestamp) {
+ros::Time pcl_to_ros_time(uint64_t pcl_timestamp) {
     uint32_t sec = pcl_timestamp; // seconds
     std::cout << "pcl to ros sec: " << sec << std::endl;
     uint32_t nsec = pcl_timestamp % static_cast<uint64_t>(1e9); // nanoseconds
@@ -103,21 +109,37 @@ ros::Time pclToRosTime(uint64_t pcl_timestamp) {
 };
 
 inline
-void updateVehiclePose(geometry_msgs::Pose & vehicle_pose, const geometry_msgs::TransformStamped & map_to_gnss, const geometry_msgs::TransformStamped & gnss_to_base_link)
+void update_vehicle_pose(geometry_msgs::Pose & vehicle_pose, const geometry_msgs::TransformStamped & map_to_cepton, const geometry_msgs::TransformStamped & cepton_to_base_link)
 {
-  static tf2::Transform map_to_gnss_tf, gnss_to_base_link_tf;
+    // std::cout << "Incoming vehicle Pose: " << vehicle_pose << std::endl;
+    // std::cout << "Incoming transform: " << map_to_cepton << std::endl;
+    // std::cout << "Incoming cepton->base_link transform: " << cepton_to_base_link << std::endl;
 
-  tf2::fromMsg(map_to_gnss.transform, map_to_gnss_tf);
-  tf2::fromMsg(gnss_to_base_link.transform, gnss_to_base_link_tf);
+    static tf2::Transform map_to_cepton_tf, cepton_to_base_link_tf;
 
-  auto gnss_to_map_tf = map_to_gnss_tf.inverse(); // Location of map origin expressed in gnss frame
-  auto base_link_to_map_tf = gnss_to_base_link_tf * gnss_to_map_tf; // Location of map origin expressed in base_link frame
-  auto map_to_base_link_tf = base_link_to_map_tf.inverse(); // Location of base_link origin expressed in map frame
+    tf2::fromMsg(map_to_cepton.transform, map_to_cepton_tf);
+    tf2::fromMsg(cepton_to_base_link.transform, cepton_to_base_link_tf);
 
-  auto map_to_base_link = tf2::toMsg(map_to_base_link_tf);
-  vehicle_pose.position.x = map_to_base_link.translation.x;
-  vehicle_pose.position.y = map_to_base_link.translation.y;
-  vehicle_pose.orientation = map_to_base_link.rotation;
+    // std::cout << "tf info \nGnss->base_link" << cepton_to_base_link << std::endl;
+    // std::cout << "map->gnss" << map_to_cepton_tf << std::endl;
+    // std::cout << "gnss->base_link" << cepton_to_base_link << std::endl;
+
+    auto cepton_to_map_tf = map_to_cepton_tf.inverse(); // Location of map origin expressed in gnss frame
+    auto base_link_to_map_tf = cepton_to_base_link_tf * cepton_to_map_tf; // Location of map origin expressed in base_link frame
+    auto map_to_base_link_tf = base_link_to_map_tf.inverse(); // Location of base_link origin expressed in map frame
+
+    auto map_to_base_link = tf2::toMsg(map_to_base_link_tf);
+    vehicle_pose.position.x = map_to_base_link.translation.x;
+    vehicle_pose.position.y = map_to_base_link.translation.y;
+    vehicle_pose.orientation = map_to_base_link.rotation;
+};
+
+inline
+tf2::Quaternion transform_to_tf2(geometry_msgs::Quaternion quaternion)
+{
+    tf2::Quaternion tf2_quaternion;
+    tf2::fromMsg(quaternion, tf2_quaternion);
+    return tf2_quaternion;
 };
 
 struct LocalizationNodeParams
@@ -132,7 +154,7 @@ struct LocalizationNodeParams
     std::string local_map_topic = "local_map"; // topic for visualizing local map
     std::string gps_pose_topic = "gps_pose"; // localization based position
     std::string localization_pose_topic = "estimated_pose"; // replaces above...
-    std::string map_tf_topic = "/vehicle_pose"; // overwrite map tf topic
+    std::string map_tf_topic = "vehicle_pose"; // overwrite map tf topic
     
     // debug publishers
     std::string deskewed_pub_topic = "deskewed_cloud"; 
@@ -143,14 +165,16 @@ struct LocalizationNodeParams
     bool gnss_cb_debug = false;
     bool topic_debug = false;
 
+    // TF Frames
     std::string world_frame = "world";
     std::string map_frame = "map";
+    std::string odom_frame = "odom";
     std::string vehicle_frame = "base_link";
     std::string cepton_frame = "cepton2";
     std::string gnss_frame = "gnss1";
 
     double diviner_pub_frequency_hz = 20.0;
-    double syncer_frequency_hz = 20.0;
+    double syncer_pub_frequency_hz = 20.0;
     double vehicle_transform_frequency_hz = 20.0;
     double map_transform_frequency_hz = 20.0;
 
@@ -179,7 +203,7 @@ struct LocalizationNodeParams
     std::string vestimator; // Constant, wheel ticks, or IMU based
     bool vestimator_debug = false;
 
-    double max_sync_err;
+    double max_sync_err_s;
     std::string point_type;
     bool switcher_debug = false;
     bool syncer_debug = false;
@@ -200,6 +224,7 @@ class LocalizationNode
         std::shared_ptr<tf2_ros::TransformBroadcaster> tf_br_;
 
         bool localization_running;
+        bool gps_running;
         std::mutex lidar_mtx_;
         std::mutex gnss_mtx_;
         std::mutex syncer_mtx_;
@@ -235,8 +260,6 @@ class LocalizationNode
         // Syncer
         std::shared_ptr<diviner::Syncer> syncer_;
         diviner::SyncerParams syncer_params_;
-        std::queue<diviner::synced_msgs> synced_queue_;
-        void syncer_cb(const ros::TimerEvent & event);
         
         // Setup for interfaces
         std::shared_ptr<diviner::Diviner> diviner_;
@@ -263,7 +286,7 @@ class LocalizationNode
         diviner::Params<diviner::VoxelFilterParams, diviner::IFilterParams> voxel_filter_params_;
         
         // Maps
-        // diviner::Params<diviner::ExampleMapParams, diviner::IMapParams> example_map_params_;
+        diviner::Params<diviner::ExampleMapParams, diviner::IMapParams> example_map_params_;
         // diviner::Params<diviner::HashMapParams, diviner::IMapParams> hash_map_params_;
         // diviner::Params<diviner::KdTreeMapParams, diviner::IMapParams> kdtree_map_params_;
         diviner::Params<diviner::OctreeMapParams, diviner::IMapParams> octree_map_params_;
@@ -276,11 +299,12 @@ class LocalizationNode
 
         // Transform Publisher
         geometry_msgs::TransformStamped transform_out;
-        void update_transforms(geometry_msgs::PoseStamped &vehicle_location);
+        void updateTransforms(geometry_msgs::PoseStamped &vehicle_location);
 
         // Transforms
-        geometry_msgs::TransformStamped transform_stamped_;
+        geometry_msgs::TransformStamped tf_published_;
         geometry_msgs::TransformStamped cepton_to_base_link_;
+        geometry_msgs::TransformStamped base_link_to_cepton_;
         geometry_msgs::TransformStamped gnss_to_base_link_;
         geometry_msgs::TransformStamped gnss_to_cepton_;
         geometry_msgs::TransformStamped world_to_map_;
@@ -298,16 +322,20 @@ class LocalizationNode
 
         // Lidar Cloud
         pcl::PointCloud<diviner::PointStamped>::Ptr current_scan_;
-        std::queue<pcl::PointCloud<diviner::PointStamped>::Ptr> lidar_queue_;
+        std::queue<pcl::PointCloud<diviner::PointStamped>> lidar_queue_;
         void lidar_cb(const sensor_msgs::PointCloud2ConstPtr input_cloud_);
 
         // GNSS
         void gnss_cb(const diviner::GnssType gnss_pos);
 
+        // Syncer
+        std::queue<diviner::SyncedMsgs> synced_queue_;
+        void syncer_cb(const ros::TimerEvent & event);
+
         // IMU
         diviner::IMUinfo imu_info;
         std::queue<diviner::IMUinfo> imu_queue_;
-        void imu_cb(const novatel_oem7_msgs::CORRIMU);
+        // void imu_cb(const novatel_oem7_msgs::CORRIMU);
 };
 
 

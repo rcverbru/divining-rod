@@ -107,7 +107,7 @@ struct Alignment
     geometry_msgs::TransformStamped transform;
 };
 
-struct synced_msgs
+struct SyncedMsgs
 {
     geometry_msgs::PoseStamped gps;
     pcl::PointCloud<diviner::PointStamped>::Ptr cloud;

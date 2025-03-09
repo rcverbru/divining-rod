@@ -1,0 +1,77 @@
+' generate png file using:
+' java -jar plantuml.jar localization_map.puml
+' just update plantuml.jar with actual location
+
+@startuml
+
+package "Physical Vehicle" {
+    [LiDAR] as Li #LightGreen
+    [GNSS/IMU] as GI #LightGreen
+    [Vehicle Dynamics] as VD #LightGreen
+}
+
+package "Localization Repo" {
+    package "diviner" as DM #Orange {
+        package "Aligner" as AL {
+            (initialize) as al_init
+            (align) as al_al
+            (updateCurrPose) as al_ucp
+        }
+        package "Diviner" as DI {
+            (step) as di_s
+        }
+        package "Deskewer" as DE{
+            (deskew) as de_d   
+        }
+        package "Filter" as FI {
+            (filter) as fi_fi
+        }
+        package "Map" as MA {
+            (add_cloud) as ma_ac
+            (get_data) as ma_gd
+            (clear_map) as ma_cm
+            (trim_map) as ma_tm
+        }
+        package "Vestimator" as VE {
+            (vestimate) as ve_ve
+        }
+    }
+    
+    package "Localization Node" as LN {
+        (diviner_cb) as dcb
+        (lidar_cb) as lcb
+        (gnss_cb) as gcb
+        (syncer_cb) as scb
+    }
+
+    [Odom Frame] as OF
+}
+
+di_s --> al_init : initialize pose
+al_init --> ve_ve : estimate velocity from pose list
+ve_ve --> de_d : deskew
+de_d --> fi_fi : filter part 1
+fi_fi --> al_al : align
+al_al --> fi_fi : filter part 2
+fi_fi --> ma_ac : add 2nd filtered cloud
+al_al --> al_ucp : update pose estimate
+ma_gd --> al_al : get map to align to
+ma_ac --> ma_tm : trim map
+
+al_ucp --> dcb : update pose
+
+dcb --> di_s : stuff
+dcb --> OF : estimated pose
+
+gcb --> scb : gnss_queue
+lcb --> scb : lidar_queue
+scb --> dcb : synced_queue
+
+' Lidar Sensor Tree
+Li --> lcb : point clouds
+
+GI --> gcb : odom points
+
+
+
+@enduml 

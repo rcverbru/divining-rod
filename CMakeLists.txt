@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_geometry_msgs
   nav_msgs
   novatel_oem7_msgs
+  visualization_msgs
 )
 
 catkin_package(
@@ -31,6 +32,7 @@ catkin_package(
   tf2_geometry_msgs
   nav_msgs
   novatel_oem7_msgs
+  visualization_msgs
 )
 
 include_directories(
@@ -64,15 +66,20 @@ set(FILTER_SRCS
 )
 
 set(MAP_SRCS
-#   src/map/example_map.cpp
+  src/map/example_map.cpp
 #   src/map/hash_map.cpp
 #   src/map/kdtree_map.cpp
   src/map/octree_map.cpp
 )
 
+set(PREPROCESSORS_SRCS
+    src/preprocessors/outlier.cpp
+)
+
 set(UTILS_SRCS
   src/utils/msg_converter.cpp
-  src/utils/sync-er.cpp
+  src/utils/switcher.cpp
+  src/utils/syncer.cpp
 )
 
 set(VESTIMATOR_SRCS
@@ -89,6 +96,7 @@ set(LOCALIZATION_SRCS
   ${MAP_SRCS}
   ${UTILS_SRCS}
   ${VESTIMATOR_SRCS}
+  ${PREPROCESSORS_SRCS}
 )
 
 add_library(localization SHARED ${LOCALIZATION_SRCS})
@@ -101,6 +109,11 @@ target_link_libraries(localization diviner)
 # localization_node
 add_executable(localization_node src/main.cpp src/localization_node.cpp)
 target_link_libraries(localization_node localization diviner ${catkin_LIBRARIES})
+
+# Scripts
+catkin_install_python(PROGRAMS scripts/csv_dump.py scripts/pose_graph.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 #############
 ##  Tests  ##

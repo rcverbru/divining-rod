@@ -179,6 +179,24 @@ LocalizationNode::LocalizationNode(
         ROS_WARN_NAMED(localization_node::LOCALIZATION_NODE, "Mapper %s is not valid", ln_params_.map.c_str());
     }
 
+    // Set Preprocessing
+    std::set<std::string> processors(ln_params_.processors.begin(), ln_params_.processors.end());
+
+    for(const auto & processor : processors)
+    {
+        if(processor == "outlier_removal")
+        {
+            // processors_.push_back(std::make_shared<diviner::OutlierRemoval>());
+        }
+        if(processor == "dsor")
+        {
+            // processors_.push_back(std::make_shared<diviner::Dsor>());
+        }
+        else{
+            ROS_ERROR("Invalid processor name: %s", processor.c_str());
+        }
+    }
+
     // Set Velocity tracking
     if(ln_params_.vestimator == "examplevestimator")
     {
@@ -319,8 +337,14 @@ LocalizationNode::LocalizationNode(
     converter_params_.point_type = ln_params_.point_type;
     converter_ = std::make_shared<diviner::MsgConverter>(converter_params_);
 
+    // Create Switcher
+    switcher_params_.debug = ln_params_.switcher_debug;
+    switcher_params_.max_std_dev = ln_params_.max_std_dev;
+    switcher_ = std::make_shared<diviner::Switcher>(switcher_params_);
+
+    // Create Syncer
     syncer_params_.debug = ln_params.syncer_debug;
-    // syncer_params_.max_sync_err_s = ln_params.max_sync_err_s;
+    syncer_params_.max_sync_err_s = ln_params.max_sync_err_s;
     syncer_ = std::make_shared<diviner::Syncer>(syncer_params_);
 
 
@@ -333,7 +357,9 @@ LocalizationNode::LocalizationNode(
     localization_map_pub_ = node_->advertise<sensor_msgs::PointCloud2>(ln_params_.local_map_topic, 1, true);
     gps_pub_ = node_->advertise<geometry_msgs::Pose>(ln_params_.gps_pose_topic, 1, true);
     pose_pub_ = node_->advertise<geometry_msgs::PoseStamped>(ln_params_.localization_pose_topic, 1, true);
+    path_pub_ = node_->advertise<nav_msgs::Path>(ln_params_.path_topic, 1, true);
     map_tf_pub_ = node_->advertise<geometry_msgs::Pose>(ln_params_.map_tf_topic, 1);
+    explicit_pub_ = node_->advertise<std_msgs::String>(ln_params_.explicit_topic, 1000);
 
     if(ln_params_.topic_debug)
     {
@@ -364,7 +390,18 @@ LocalizationNode::LocalizationNode(
 
     // Old Timers
     // vehicle_transform_timer_ = node_->createTimer(ros::Duration(1.0 / ln_params_.vehicle_transform_frequency_hz), &LocalizationNode::transform_cb, this);
+    explicit_timer_ = node_->createTimer(ros::Duration(1.0 / ln_params_.explicit_frequency_hz), &LocalizationNode::explicit_cb, this);
+}
 
+void LocalizationNode::explicit_cb(const ros::TimerEvent & event)
+{
+    std_msgs::String msg;
+
+    std::stringstream ss;
+    ss << "THE DIVINER IS IN THE ODOM FRAME CHAZ!";
+    msg.data = ss.str();
+
+    explicit_pub_.publish(msg);
 }
 
 void LocalizationNode::updateTransforms(geometry_msgs::PoseStamped &vehicle_location)
@@ -516,7 +553,7 @@ void LocalizationNode::transform_cb(const ros::TimerEvent & event)
 
 void LocalizationNode::diviner_cb(const ros::TimerEvent & event)
 {
-    assert((void("Diviner is running when not supposed to."), localization_running));
+    // assert((void("Diviner is running when not supposed to."), localization_running));
     // Dropping the mtx lock for the moment
     // Would love to try getting this to run across multiple threads to try and decrease processing time
     // diviner_mtx_.lock();
@@ -567,9 +604,17 @@ void LocalizationNode::diviner_cb(const ros::TimerEvent & event)
                     std::cout << "after: \n" << veh_pose->front().pose << std::endl;
                 }
 
+                est_prev_path.poses.push_back(veh_pose->front());
+                est_prev_path.header.frame_id = ln_params_.odom_frame;
+
+                gps_prev_path.poses.push_back(synced_queue_.front().gps);
+                gps_prev_path.header.frame_id = ln_params_.map_frame;
+
                 sensor_msgs::PointCloud2 output;
                 pcl::toROSMsg(*map_->get_data(), output);
+                output.header.frame_id = ln_params_.odom_frame;
                 localization_map_pub_.publish(output);
+                path_pub_.publish(est_prev_path);
                 pose_pub_.publish(veh_pose->front());
                 gps_pub_.publish(synced_queue_.front().gps);
 
@@ -639,6 +684,17 @@ void LocalizationNode::lidar_cb(const sensor_msgs::PointCloud2ConstPtr input_clo
         std::cout << "- lidar_cb: Current scan has time stamp: " << current_scan_->header.stamp << std::endl;
     }
     
+    // int i = 0;
+    // for(auto point : current_scan_->points)
+    // {
+    //     if(point.z <= 0.5)
+    //     {
+
+    //         current_scan_->erase(current_scan_->begin()+i);
+    //         // std::cout << "removed point" << std::endl;
+    //     }
+    //     i++;
+    // }
 
     lidar_queue_.push(*current_scan_);
     
@@ -658,6 +714,9 @@ void LocalizationNode::gnss_cb(const diviner::GnssType gnss_pose)
     
     // TODO: add a conditional that checks if the covariance is below 0.0001
     // or take sqrt(covariance) and check std deviation
+    geometry_msgs::PoseWithCovarianceStamped covariance_pose;
+    covariance_pose.pose.covariance = gnss_pose->pose.covariance;
+    switcher_->checkGPS(covariance_pose);
     
     geometry_msgs::PoseStamped vehicle_pose;
     geometry_msgs::PoseStamped map_vehicle_pose;
@@ -674,19 +733,12 @@ void LocalizationNode::gnss_cb(const diviner::GnssType gnss_pose)
     
     // why tf does tf2 remove the stamp????? I'm going to lose it...
     map_vehicle_pose.header.stamp = vehicle_pose.header.stamp;
-    map_vehicle_pose.header.frame_id = gnss_pose->header.frame_id;
+    map_vehicle_pose.header.frame_id = ln_params_.cepton_frame;
 
     if(ln_params_.gnss_cb_debug)
     {
         std::cout << "- gnss_cb: Current number of queued poses: " << vehicle_poses_queue_.size() << std::endl;
     }
-
-    // if(vehicle_poses_queue_.size() == 0u)
-    // {
-    //     // If pose queue empty add two extra poses
-    //     vehicle_poses_queue_.push(map_vehicle_pose);
-    //     vehicle_poses_queue_.push(map_vehicle_pose);
-    // }
 
     // add to poses queue
     vehicle_poses_queue_.push(map_vehicle_pose);
@@ -783,29 +835,6 @@ void LocalizationNode::syncer_cb(const ros::TimerEvent & event)
     {
         std::cout << "- syncer_cb: No lidar scans available... waiting for new scan" << std::endl;
     }
-
-
-        // while (!lidar_queue_.empty() || !vehicle_poses_queue_.empty())
-        // {
-            
-            // if (!lidar_queue_.empty() && vehicle_poses_queue_.empty())
-            // {
-            //     //Do something if lidar is NOT empty and gps is empty
-            // } 
-            // else if (lidar_queue_.empty() && !vehicle_poses_queue_.empty()) 
-            // {
-            //     //Do something if lidar is empty and gps is NOT empty
-            //     //Temporarily dump extra vehicle poses
-            //     //RYAN this does something but I have no clue if it is what it should 
-            //     //The idea is too dump gps queue if no new lidar scans come in when the gps scans come in, but it might be 
-            //     //doing it very wrong
-            //     // while(!vehicle_poses_queue_.empty()){
-            //     //     vehicle_poses_queue_.pop();
-            //     //     std::cout << "syncer_cb: Dumping" << std::endl;
-            //     // }
-            // }
-    
-        // }
     
     syncer_mtx_.unlock();
 }

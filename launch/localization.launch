@@ -12,7 +12,7 @@
     <!-- Running State -->
     <arg name="running_state" default="localization"/> <!-- gnss, localization, switching, or both-->
     <arg name="debug" default="false"/>
-    <arg name="lidar_cb_debug" default="false"/>
+    <arg name="lidar_cb_debug" default="true"/>
     <arg name="gnss_cb_debug" default="false"/>
     <arg name="topic_debug" default="false"/>
 
@@ -39,7 +39,10 @@
     <arg name="max_points_per_voxel" value="20"/>
     <arg name="map" default="octreemap"/>
     <arg name="map_debug" default="false"/>
-    
+
+    <!-- Processors -->
+    <arg name="processors" default="[outlier]"/>
+
     <!-- Vestimators -->
     <arg name="vestimator" default="constant"/>
     <arg name="vestimator_debug" default="false"/>
@@ -49,7 +52,8 @@
     <arg name="converter_debug" default="false"/>
     
     <!-- Utils - Switcher -->
-    <arg name="switcher_debug" default="false"/>
+    <arg name="max_std_dev" default="0.1"/>
+    <arg name="switcher_debug" default="true"/>
     
     <!-- Utils - Syncer -->
     <arg name="max_sync_err_s" default="0.05"/>
@@ -97,6 +101,9 @@
         <param name="map" value="$(arg map)"/>
         <param name="map_debug" value="$(arg map_debug)"/>
 
+        <!-- Processors -->
+        <rosparam param="processors" subst_value="true">$(arg processors)</rosparam>
+
         <!-- Vestimators -->
         <param name="vestimator" value="$(arg vestimator)"/>
         <param name="vestimator_debug" value="$(arg vestimator_debug)"/>
@@ -106,6 +113,7 @@
         <param name="converter_debug" value="$(arg converter_debug)"/>
         
         <!-- Utils - Convert -->
+        <param name="max_std_dev" value="$(arg max_std_dev)"/>
         <param name="switcher_debug" value="$(arg switcher_debug)"/>
 
         <!-- Utils - Syncer -->

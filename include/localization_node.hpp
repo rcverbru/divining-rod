@@ -31,6 +31,10 @@
 // #include <map/kdtree_map.hpp>
 #include <map/octree_map.hpp>
 
+// Preprocessor Includes
+#include <diviner/i_preprocessor.hpp>
+#include <preprocessors/outlier.hpp>
+
 // Velocity Estimator Includes
 #include <diviner/i_vestimator.hpp>
 #include <vestimator/example_vestimator.hpp>
@@ -41,7 +45,9 @@
 // ROS Stuff
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
+#include <nav_msgs/Path.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <std_msgs/String.h>
 
 #include <geometry_msgs/Transform.h>
 #include <geometry_msgs/PoseWithCovariance.h>
@@ -65,7 +71,7 @@
 #include <novatel_oem7_msgs/CORRIMU.h>
 #include <nav_msgs/Odometry.h>
 
-#include <cassert>
+// #include <cassert>
 #include <memory>
 #include <mutex>
 #include <chrono>
@@ -76,7 +82,7 @@
 #include <vector>
 #include <list>
 
-#define assertm(exp, msg) assert((void(msg), exp))
+// #define assertm(exp, msg) assert((void(msg), exp))
 
 namespace localization_node
 {
@@ -96,6 +102,25 @@ geometry_msgs::PoseStamped to_pose_stamped(const nav_msgs::Odometry & new_pose)
     temp.pose.orientation.y = new_pose.pose.pose.orientation.y;
     temp.pose.orientation.z = new_pose.pose.pose.orientation.z;
     temp.pose.orientation.w = new_pose.pose.pose.orientation.w;
+
+    return temp;
+};
+
+// The new version of the above function
+inline
+geometry_msgs::PoseWithCovarianceStamped to_pose_with_covariance_stamped(const nav_msgs::Odometry & new_pose)
+{
+    geometry_msgs::PoseWithCovarianceStamped temp;
+
+    temp.header.stamp = new_pose.header.stamp;
+    temp.pose.pose.position.x = new_pose.pose.pose.position.x;
+    temp.pose.pose.position.y = new_pose.pose.pose.position.y;
+    temp.pose.pose.position.z = new_pose.pose.pose.position.z;
+    temp.pose.pose.orientation.x = new_pose.pose.pose.orientation.x;
+    temp.pose.pose.orientation.y = new_pose.pose.pose.orientation.y;
+    temp.pose.pose.orientation.z = new_pose.pose.pose.orientation.z;
+    temp.pose.pose.orientation.w = new_pose.pose.pose.orientation.w;
+    temp.pose.covariance = new_pose.pose.covariance;
 
     return temp;
 };
@@ -153,8 +178,10 @@ struct LocalizationNodeParams
     // publishers
     std::string local_map_topic = "local_map"; // topic for visualizing local map
     std::string gps_pose_topic = "gps_pose"; // localization based position
-    std::string localization_pose_topic = "estimated_pose"; // replaces above...
+    std::string localization_pose_topic = "estimated_pose"; // estimated pose in the odom frame
+    std::string path_topic = "previous_path";
     std::string map_tf_topic = "vehicle_pose"; // overwrite map tf topic
+    std::string explicit_topic = "explicit";
     
     // debug publishers
     std::string deskewed_pub_topic = "deskewed_cloud"; 
@@ -177,6 +204,7 @@ struct LocalizationNodeParams
     double syncer_pub_frequency_hz = 20.0;
     double vehicle_transform_frequency_hz = 20.0;
     double map_transform_frequency_hz = 20.0;
+    double explicit_frequency_hz = 20.0;
 
     std::string running_state; // GNSS only, Localization only, or Both
     bool debug = false;
@@ -200,14 +228,19 @@ struct LocalizationNodeParams
     std::string map;
     bool map_debug = false;
 
+    std::vector<std::string> processors;
+
     std::string vestimator; // Constant, wheel ticks, or IMU based
     bool vestimator_debug = false;
 
-    double max_sync_err_s;
     std::string point_type;
-    bool switcher_debug = false;
-    bool syncer_debug = false;
     bool converter_debug = false;
+
+    double max_std_dev = 0.1;
+    bool switcher_debug = false;
+
+    double max_sync_err_s;
+    bool syncer_debug = false;
 };
 
 class LocalizationNode
@@ -239,12 +272,15 @@ class LocalizationNode
         ros::Publisher localization_map_pub_;
         ros::Publisher gps_pub_;
         ros::Publisher pose_pub_;
+        ros::Publisher path_pub_;
         ros::Publisher map_tf_pub_;
         ros::Publisher deskewed_pub_;
         ros::Publisher voxel_pub_;
         ros::Publisher octree_pub_;
+        ros::Publisher explicit_pub_;
 
         // ROS Timers
+        ros::Timer explicit_timer_;
         ros::Timer diviner_timer_;
         ros::Timer syncer_timer_;
         ros::Timer vehicle_transform_timer_;
@@ -254,8 +290,8 @@ class LocalizationNode
         diviner::MsgConverterParams converter_params_;
 
         // Switcher
-        // std::shared_ptr<diviner::Switcher> switcher_;
-        // diviner::SwitcherParams switcher_params_;
+        std::shared_ptr<diviner::Switcher> switcher_;
+        diviner::SwitcherParams switcher_params_;
 
         // Syncer
         std::shared_ptr<diviner::Syncer> syncer_;
@@ -291,11 +327,17 @@ class LocalizationNode
         // diviner::Params<diviner::KdTreeMapParams, diviner::IMapParams> kdtree_map_params_;
         diviner::Params<diviner::OctreeMapParams, diviner::IMapParams> octree_map_params_;
         
+        // Processors
+        diviner::Params<diviner::OutlierProcessorParams, diviner::IPreprocessorParams> outlier_processor_params_;
+
         // Vestimators
         diviner::Params<diviner::ExampleVestimatorParams, diviner::IVestimatorParams> example_vestimator_params_;
         diviner::Params<diviner::ConstantVestimatorParams, diviner::IVestimatorParams> constant_vestimator_params_;
         diviner::Params<diviner::WheelTickVestimatorParams, diviner::IVestimatorParams> wt_vestimator_params_;
         diviner::Params<diviner::ImuVestimatorParams, diviner::IVestimatorParams> imu_vestimator_params_;
+
+        // gotta be explicit about diviner frame
+        void explicit_cb(const ros::TimerEvent & event);
 
         // Transform Publisher
         geometry_msgs::TransformStamped transform_out;
@@ -315,9 +357,10 @@ class LocalizationNode
 
         // Diviner
         std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> veh_pose = std::make_shared<std::vector<geometry_msgs::PoseStamped>>();
+        nav_msgs::Path est_prev_path, gps_prev_path;
         // std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> veh_pose( new std::vector<geometry_msgs::PoseStamped> )
         // auto veh_pose = std::make_shared<std::vector<geometry_msgs::PoseStamped>>();
-        std::vector<diviner::IMUinfo> imu_vec;
+        // std::vector<diviner::IMUinfo> imu_vec;
         void diviner_cb(const ros::TimerEvent & event);
 
         // Lidar Cloud

@@ -51,16 +51,24 @@ int main (int argc, char** argv)
     node->getParam("map", ln_params.map);
     node->getParam("map_debug", ln_params.map_debug);
 
+    // Processor Params
+    node->getParam("processors", ln_params.processors);
+
     // Vestimator Params
     node->getParam("vestimator", ln_params.vestimator);
     node->getParam("vestimator_debug", ln_params.vestimator_debug);
 
-    // Utils
-    node->getParam("max_sync_err_s", ln_params.max_sync_err_s);
+    // Utils - Converter
     node->getParam("point_type", ln_params.point_type);
-    node->getParam("switcher_debug", ln_params.switcher_debug);
-    node->getParam("syncer_debug", ln_params.syncer_debug);
     node->getParam("converter_debug", ln_params.converter_debug);
+
+    // Utils - Switcher
+    node->getParam("max_std_dev", ln_params.max_std_dev);
+    node->getParam("switcher_debug", ln_params.switcher_debug);
+
+    // Utils - Syncer
+    node->getParam("max_sync_err_s", ln_params.max_sync_err_s);
+    node->getParam("syncer_debug", ln_params.syncer_debug);
 
 
     auto localization_node = std::make_shared<localization_node::LocalizationNode>(node, ln_params);

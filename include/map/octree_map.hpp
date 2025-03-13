@@ -41,6 +41,7 @@ class OctreeMap : public IMap
             // BranchContainer = 
             // local_map_octree->setTreeDepth(params_.octree_depth);
             local_map_octree->setResolution(params_.octree_resolution);
+            local_map_pointcloud->header.frame_id = "cepton2";
 
         };
         ~OctreeMap()

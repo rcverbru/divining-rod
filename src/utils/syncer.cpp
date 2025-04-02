@@ -5,7 +5,7 @@ GPS: 20 Hz -> vehicle_poses_queue_
 Lidar: 10 Hz -> cloud
 */
 
-namespace diviner
+namespace localization_node
 {
 
 diviner::SyncedMsgs Syncer::sync(std::queue<pcl::PointCloud<diviner::PointStamped>> &cloud_queue_, std::queue<geometry_msgs::PoseStamped> &vehicle_poses_queue_)

@@ -60,7 +60,7 @@ class IAligner
          * @param point_cloud Pointer to the current scan
          * @param alignment alignment vector/matrix 
          */
-        virtual void updatePoints(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, diviner::Alignment alignment) = 0;
+        virtual void updatePoints(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, geometry_msgs::PoseStamped prev_pose) = 0;
 
         /**
          * Takes in the rotation and translation vectors from icp and updates

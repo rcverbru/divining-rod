@@ -1,5 +1,6 @@
 <launch>
     <!-- Topics -->
+    <!-- <arg name="lidar_topic" default="/filtered_points_no_ground"/> -->
     <arg name="lidar_topic" default="/cepton2/points_221339"/>
     <arg name="wheel_tick_topic" default="/yes"/>
     <arg name="gnss_topic" default="/novatel/oem7/odom"/>
@@ -12,7 +13,7 @@
     <!-- Running State -->
     <arg name="running_state" default="localization"/> <!-- gnss, localization, switching, or both-->
     <arg name="debug" default="false"/>
-    <arg name="lidar_cb_debug" default="true"/>
+    <arg name="lidar_cb_debug" default="false"/>
     <arg name="gnss_cb_debug" default="false"/>
     <arg name="topic_debug" default="false"/>
 
@@ -23,10 +24,10 @@
     <arg name="aligner" default="pclaligner"/>
     <arg name="max_num_iterations" default="10"/>
     <arg name="convergence_criterion" default="0.0001"/>
-    <arg name="aligner_debug" default="false"/>
+    <arg name="aligner_debug" default="true"/>
 
     <!-- Deskewers -->
-    <arg name="deskewer" default="exampledeskewer"/>
+    <arg name="deskewer" default="standardskewer"/>
     <arg name="deskewer_debug" default="false"/>
     
     <!-- Filters -->
@@ -37,11 +38,12 @@
     <!-- Mappers -->
     <arg name="max_distance" default="30"/>
     <arg name="max_points_per_voxel" value="20"/>
-    <arg name="map" default="octreemap"/>
+    <arg name="map" default="voxelmap"/>
     <arg name="map_debug" default="false"/>
 
     <!-- Processors -->
-    <arg name="processors" default="[outlier]"/>
+    <arg name="processor_debug" default="true"/>
+    <arg name="processors" default="[transform]"/>
 
     <!-- Vestimators -->
     <arg name="vestimator" default="constant"/>
@@ -52,8 +54,9 @@
     <arg name="converter_debug" default="false"/>
     
     <!-- Utils - Switcher -->
-    <arg name="max_std_dev" default="0.1"/>
-    <arg name="switcher_debug" default="true"/>
+    <arg name="max_angle_std_dev" default="3.1"/>
+    <arg name="max_point_std_dev" default="0.1"/>
+    <arg name="switcher_debug" default="false"/>
     
     <!-- Utils - Syncer -->
     <arg name="max_sync_err_s" default="0.05"/>
@@ -102,6 +105,7 @@
         <param name="map_debug" value="$(arg map_debug)"/>
 
         <!-- Processors -->
+        <param name="processor_debug" value="$(arg processor_debug)"/>
         <rosparam param="processors" subst_value="true">$(arg processors)</rosparam>
 
         <!-- Vestimators -->
@@ -113,7 +117,8 @@
         <param name="converter_debug" value="$(arg converter_debug)"/>
         
         <!-- Utils - Convert -->
-        <param name="max_std_dev" value="$(arg max_std_dev)"/>
+        <param name="max_angle_std_dev" value="$(arg max_angle_std_dev)"/>
+        <param name="max_point_std_dev" value="$(arg max_point_std_dev)"/>
         <param name="switcher_debug" value="$(arg switcher_debug)"/>
 
         <!-- Utils - Syncer -->

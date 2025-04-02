@@ -91,13 +91,13 @@ LocalizationNode::LocalizationNode(
         example_deskewer_params_.child_params.debug = ln_params_.deskewer_debug;
         deskewer_ = std::make_shared<diviner::ExampleDeskewer>(example_deskewer_params_);
     }
-    // else if(ln_params_.deskewer == "standarddeskewer")
-    // {
-    //     standard_deskewer_params_.parent_params.debug = ln_params_.debug;
-    //     standard_deskewer_params_.child_params.debug = ln_params_.deskewer_debug;
+    else if(ln_params_.deskewer == "standarddeskewer")
+    {
+        standard_deskewer_params_.parent_params.debug = ln_params_.debug;
+        standard_deskewer_params_.child_params.debug = ln_params_.deskewer_debug;
 
-    //     deskewer_ = std::make_shared<diviner::StandardDeskewer>(standard_deskewer_params_);
-    // }
+        deskewer_ = std::make_shared<diviner::StandardDeskewer>(standard_deskewer_params_);
+    }
     else
     {
         ROS_WARN_NAMED(localization_node::LOCALIZATION_NODE, "Deskewer %s is not valid", ln_params_.deskewer.c_str());
@@ -174,27 +174,20 @@ LocalizationNode::LocalizationNode(
         map_ = std::make_shared<diviner::OctreeMap>(octree_map_params_);
         // map_->setResolution(0.1)
     }
+    else if(ln_params_.map == "voxelmap")
+    {
+        if(ln_params_.debug)
+        {
+            ROS_INFO_NAMED(localization_node::LOCALIZATION_NODE, "Using Voxel Mapper");
+        }
+
+        voxel_map_params_.parent_params.debug = ln_params_.map_debug;
+        map_ = std::make_shared<diviner::VoxelMap>(voxel_map_params_);
+        // map_->setResolution(0.1)
+    }
     else
     {
         ROS_WARN_NAMED(localization_node::LOCALIZATION_NODE, "Mapper %s is not valid", ln_params_.map.c_str());
-    }
-
-    // Set Preprocessing
-    std::set<std::string> processors(ln_params_.processors.begin(), ln_params_.processors.end());
-
-    for(const auto & processor : processors)
-    {
-        if(processor == "outlier_removal")
-        {
-            // processors_.push_back(std::make_shared<diviner::OutlierRemoval>());
-        }
-        if(processor == "dsor")
-        {
-            // processors_.push_back(std::make_shared<diviner::Dsor>());
-        }
-        else{
-            ROS_ERROR("Invalid processor name: %s", processor.c_str());
-        }
     }
 
     // Set Velocity tracking
@@ -256,38 +249,39 @@ LocalizationNode::LocalizationNode(
     tf_buffer_ = std::make_shared<tf2_ros::Buffer>();
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
     tf_br_ = std::make_shared<tf2_ros::TransformBroadcaster>();
+    static_tf_br_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>();
 
-    // bool gnss_to_cepton_updated = false;
-    // while (!gnss_to_cepton_updated)
-    // {
-    //     try
-    //     {
-    //         gnss_to_cepton_ = tf_buffer_->lookupTransform(ln_params_.cepton_frame, ln_params_.gnss_frame, ros::Time(0));
-    //         gnss_to_cepton_updated = true;
-    //         ROS_INFO_NAMED(localization_node::LOCALIZATION_NODE, "Got cepton->vehicle transform");
-    //     }
-    //     catch(tf2::TransformException & ex)
-    //     {
-    //         ROS_WARN("%s", ex.what());
-    //         std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    //     }
-    // }
+    bool world_to_map_updated = false;
+    while (!world_to_map_updated)
+    {
+        try
+        {
+            world_to_map_ = tf_buffer_->lookupTransform(ln_params_.map_frame, ln_params_.world_frame, ros::Time(0));
+            world_to_map_updated = true;
+            ROS_INFO_NAMED(localization_node::LOCALIZATION_NODE, "Got world->map transform");
+        }
+        catch(tf2::TransformException & ex)
+        {
+            ROS_WARN("%s", ex.what());
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+    }
 
-    // bool gnss_to_base_link_updated = false;
-    // while (!gnss_to_base_link_updated)
-    // {
-    //     try
-    //     {
-    //         gnss_to_base_link_ = tf_buffer_->lookupTransform(ln_params_.vehicle_frame, ln_params_.gnss_frame, ros::Time(0));
-    //         gnss_to_base_link_updated = true;
-    //         ROS_INFO_NAMED(localization_node::LOCALIZATION_NODE, "Got cepton->vehicle transform");
-    //     }
-    //     catch(tf2::TransformException & ex)
-    //     {
-    //         ROS_WARN("%s", ex.what());
-    //         std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    //     }
-    // }
+    bool gnss_to_base_link_updated = false;
+    while (!gnss_to_base_link_updated)
+    {
+        try
+        {
+            gnss_to_base_link_ = tf_buffer_->lookupTransform(ln_params_.vehicle_frame, ln_params_.gnss_frame, ros::Time(0));
+            gnss_to_base_link_updated = true;
+            ROS_INFO_NAMED(localization_node::LOCALIZATION_NODE, "Got cepton->vehicle transform");
+        }
+        catch(tf2::TransformException & ex)
+        {
+            ROS_WARN("%s", ex.what());
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+    }
     
     bool cepton_to_base_link_updated = false;
     while (!cepton_to_base_link_updated)
@@ -321,6 +315,34 @@ LocalizationNode::LocalizationNode(
         }
     }
 
+    // Set Preprocessing
+    std::set<std::string> processors(ln_params_.processors.begin(), ln_params_.processors.end());
+
+    for(const auto & processor : processors)
+    {
+        if(processor == "outlier")
+        {
+            outlier_processor_params_.parent_params.debug = ln_params_.processor_debug;
+            processors_.push_back(std::make_shared<preprocessor::OutlierProcessor>(outlier_processor_params_));
+        }
+        if(processor == "dsor")
+        {
+            // processors_.push_back(std::make_shared<diviner::Dsor>());
+        }
+        if(processor == "transform")
+        {
+            transform_processor_params_.child_params.target_frame = ln_params_.vehicle_frame;
+            transform_processor_params_.child_params.source_frame = ln_params_.cepton_frame;
+            transform_processor_params_.child_params.target_transform = cepton_to_base_link_;
+            transform_processor_params_.parent_params.debug = ln_params_.processor_debug;
+
+            processors_.push_back(std::make_shared<preprocessor::TransformProcessor>(transform_processor_params_));
+        }
+        else{
+            ROS_ERROR("Invalid processor name: %s", processor.c_str());
+        }
+    }
+
     if(diviner_ == nullptr)
     {
         ROS_INFO_NAMED(localization_node::LOCALIZATION_NODE, "Starting up...");
@@ -335,17 +357,18 @@ LocalizationNode::LocalizationNode(
     // Create MsgConverter
     converter_params_.debug = ln_params_.converter_debug;
     converter_params_.point_type = ln_params_.point_type;
-    converter_ = std::make_shared<diviner::MsgConverter>(converter_params_);
+    converter_ = std::make_shared<localization_node::MsgConverter>(converter_params_);
 
     // Create Switcher
     switcher_params_.debug = ln_params_.switcher_debug;
-    switcher_params_.max_std_dev = ln_params_.max_std_dev;
-    switcher_ = std::make_shared<diviner::Switcher>(switcher_params_);
+    switcher_params_.max_point_std_dev = ln_params_.max_point_std_dev;
+    switcher_params_.max_angle_std_dev = ln_params_.max_angle_std_dev;
+    switcher_ = std::make_shared<localization_node::Switcher>(switcher_params_);
 
     // Create Syncer
     syncer_params_.debug = ln_params.syncer_debug;
     syncer_params_.max_sync_err_s = ln_params.max_sync_err_s;
-    syncer_ = std::make_shared<diviner::Syncer>(syncer_params_);
+    syncer_ = std::make_shared<localization_node::Syncer>(syncer_params_);
 
 
     // Subscribers
@@ -390,7 +413,11 @@ LocalizationNode::LocalizationNode(
 
     // Old Timers
     // vehicle_transform_timer_ = node_->createTimer(ros::Duration(1.0 / ln_params_.vehicle_transform_frequency_hz), &LocalizationNode::transform_cb, this);
-    explicit_timer_ = node_->createTimer(ros::Duration(1.0 / ln_params_.explicit_frequency_hz), &LocalizationNode::explicit_cb, this);
+    
+    if(ln_params_.explicit_status)
+    {
+        explicit_timer_ = node_->createTimer(ros::Duration(1.0 / ln_params_.explicit_frequency_hz), &LocalizationNode::explicit_cb, this);
+    }
 }
 
 void LocalizationNode::explicit_cb(const ros::TimerEvent & event)
@@ -408,17 +435,17 @@ void LocalizationNode::updateTransforms(geometry_msgs::PoseStamped &vehicle_loca
 {
     bool extreme_tf_debug = false;
     geometry_msgs::Pose updated_pose;
+    geometry_msgs::PoseStamped pose_holder;
+    pose_holder.pose.orientation.w = 1.0;
 
-    // // Need to set up status checks and decide how we want to do this
-    // switcher_->check_status();
+    // Need to set up status checks and decide how we want to do this
+    // switcher_->checkStatus();
 
     if(localization_running && !gps_running)
     {
         // Only localization mode dumps estimated pose into the odom frame
         // BUT doesn't search for a odom->map transform.
         // Also broadcasts the odom frame to the /tf topic.
-
-        geometry_msgs::PoseStamped pose_holder;
         
         if(extreme_tf_debug)
         {
@@ -428,7 +455,9 @@ void LocalizationNode::updateTransforms(geometry_msgs::PoseStamped &vehicle_loca
             std::cout << "- BEFORE doTransform: Pose before do transform: \n" << pose_holder << std::endl;
         }
 
-        tf2::doTransform(vehicle_location, pose_holder, cepton_to_base_link_);
+        // First transform is to bring location into map frame
+        // cepton is already in map frame so don't need to do world->map
+        // tf2::doTransform(vehicle_location, pose_holder, world_to_map_);
         
         if(extreme_tf_debug)
         {
@@ -440,10 +469,10 @@ void LocalizationNode::updateTransforms(geometry_msgs::PoseStamped &vehicle_loca
 
         tf_published_.header.stamp = ros::Time::now();
         tf_published_.header.frame_id = ln_params_.odom_frame;
-        tf_published_.child_frame_id = ln_params_.cepton_frame;
-        tf_published_.transform.translation.x = pose_holder.pose.position.x;
-        tf_published_.transform.translation.y = pose_holder.pose.position.y;
-        tf_published_.transform.translation.z = pose_holder.pose.position.z;
+        tf_published_.child_frame_id = ln_params_.vehicle_frame;
+        tf_published_.transform.translation.x = vehicle_location.pose.position.x;
+        tf_published_.transform.translation.y = vehicle_location.pose.position.y;
+        tf_published_.transform.translation.z = vehicle_location.pose.position.z;
         tf_published_.transform.rotation = vehicle_location.pose.orientation;
 
         if(extreme_tf_debug)
@@ -451,6 +480,7 @@ void LocalizationNode::updateTransforms(geometry_msgs::PoseStamped &vehicle_loca
             std::cout << "before update_vehicle_pose - pose queue front: " << std::endl << vehicle_location << std::endl;
         }
 
+        // Second tf is to bring to base_link frame
         update_vehicle_pose(updated_pose, tf_published_, cepton_to_base_link_);
 
         if(extreme_tf_debug)
@@ -460,31 +490,72 @@ void LocalizationNode::updateTransforms(geometry_msgs::PoseStamped &vehicle_loca
     }
     else if(!localization_running && gps_running)
     {
-        geometry_msgs::PoseStamped pose_holder;
 
+        if(extreme_tf_debug)
+        {
+            std::cout << "- BEFORE doTransform: Transform gnss->base_link: \n" << gnss_to_base_link_ << std::endl;
+            std::cout << "- BEFORE doTransform: Transform world->map: \n" << world_to_map_ << std::endl;
+            std::cout << "- BEFORE doTransform: Before transform " << vehicle_location << std::endl;
+            std::cout << "- BEFORE doTransform: Pose before do transform: \n" << pose_holder << std::endl;
+        }
+
+        // before transform is the location of the gnss in the world frame
         tf2::doTransform(vehicle_location, pose_holder, world_to_map_);
+        // after do transform is the location of the gnss in the map frame
+
+        if(extreme_tf_debug)
+        {
+            std::cout << "- AFTER doTransform: Transform gnss->base_link: \n" << gnss_to_base_link_ << std::endl;
+            std::cout << "- AFTER doTransform: after transform \n" << vehicle_location << std::endl;
+            std::cout << "- AFTER doTransform: Pose pulled: \n" << pose_holder << std::endl;
+        }
+
+        // needs to be moved into vehicle frame instead of gnss frame
+        tf2::doTransform(pose_holder, pose_holder, gnss_to_base_link_);
+
+        if(extreme_tf_debug)
+        {
+            std::cout << "- AFTER 2nd doTransform: Transform gnss->base_link: \n" << gnss_to_base_link_ << std::endl;
+            std::cout << "- AFTER 2nd doTransform: after transform \n" << vehicle_location << std::endl;
+            std::cout << "- AFTER 2nd doTransform: Pose pulled: \n" << pose_holder << std::endl;
+        }
+
+        if(oneshot)
+        {
+            zero_static_tf(static_tf_br_, ln_params_.map_frame, ln_params_.odom_frame);
+        }
 
         tf_published_.header.stamp = ros::Time::now();
-        tf_published_.header.frame_id = ln_params_.map_frame;
-        tf_published_.child_frame_id = ln_params_.gnss_frame;
-        tf_published_.transform.translation.x = vehicle_location.pose.position.x;
-        tf_published_.transform.translation.y = vehicle_location.pose.position.y;
+        tf_published_.header.frame_id = ln_params_.odom_frame;
+        tf_published_.child_frame_id = ln_params_.vehicle_frame;
+        tf_published_.transform.translation.x = pose_holder.pose.position.x;
+        tf_published_.transform.translation.y = pose_holder.pose.position.y;
         tf_published_.transform.translation.z = 0;
-        tf_published_.transform.rotation = vehicle_location.pose.orientation;
+        tf_published_.transform.rotation = pose_holder.pose.orientation;
+
+        if(extreme_tf_debug)
+        {
+            std::cout << "before update_vehicle_pose - pose queue front: " << std::endl << vehicle_location << std::endl;
+        }
 
         update_vehicle_pose(updated_pose, tf_published_, gnss_to_base_link_);
+
+        if(extreme_tf_debug)
+        {
+            std::cout << "after update_vehicle_pose - pose queue front: " << std::endl << vehicle_location << std::endl;
+        }
+
+        oneshot = false;
     }
     else if(localization_running && gps_running)
     {
         // TODO: Need to update to include odom->map tf
 
-        geometry_msgs::PoseStamped pose_holder;
-
         tf2::doTransform(vehicle_location, pose_holder, cepton_to_base_link_);
 
         tf_published_.header.stamp = ros::Time::now();
         tf_published_.header.frame_id = ln_params_.odom_frame;
-        tf_published_.child_frame_id = ln_params_.cepton_frame;
+        tf_published_.child_frame_id = ln_params_.vehicle_frame;
         tf_published_.transform.translation.x = pose_holder.pose.position.x;
         tf_published_.transform.translation.y = pose_holder.pose.position.y;
         tf_published_.transform.translation.z = pose_holder.pose.position.z;
@@ -516,44 +587,45 @@ void LocalizationNode::updateTransforms(geometry_msgs::PoseStamped &vehicle_loca
 
 void LocalizationNode::transform_cb(const ros::TimerEvent & event)
 {
-    try
-    {
-        geometry_msgs::PoseStamped vehicle_pose_;
+    // try
+    // {
+    //     geometry_msgs::PoseStamped vehicle_pose_;
 
-        // curr_transform_stamped_ = tf_buffer_->lookupTransform(ln_params_.map_frame, ln_params_.vehicle_frame, ros::Time(0));
-        // base_link_to_map_stamped_ = tf_buffer_->lookupTransform(ln_params_.map_frame, ln_params_.vehicle_frame, ros::Time(0));
+    //     curr_transform_stamped_ = tf_buffer_->lookupTransform(ln_params_.map_frame, ln_params_.vehicle_frame, ros::Time(0));
+    //     base_link_to_map_stamped_ = tf_buffer_->lookupTransform(ln_params_.map_frame, ln_params_.vehicle_frame, ros::Time(0));
 
-        // vehicle_pose_.header = curr_transform_stamped_.header;
-        // vehicle_pose_.pose.position.x = curr_transform_stamped_.transform.translation.x;
-        // vehicle_pose_.pose.position.y = curr_transform_stamped_.transform.translation.y;
-        // vehicle_pose_.pose.position.z = curr_transform_stamped_.transform.translation.z;
-        // vehicle_pose_.pose.orientation = curr_transform_stamped_.transform.rotation;
+    //     vehicle_pose_.header = curr_transform_stamped_.header;
+    //     vehicle_pose_.pose.position.x = curr_transform_stamped_.transform.translation.x;
+    //     vehicle_pose_.pose.position.y = curr_transform_stamped_.transform.translation.y;
+    //     vehicle_pose_.pose.position.z = curr_transform_stamped_.transform.translation.z;
+    //     vehicle_pose_.pose.orientation = curr_transform_stamped_.transform.rotation;
 
-        // std::cout << vehicle_poses_queue_.size() << std::endl;
-        // // if(vehicle_poses_queue_.size() == 0u)
-        // // {
-        // //     // If pose queue empty add two extra poses
-        // //     vehicle_poses_queue_.push(vehicle_pose_);
-        // //     vehicle_poses_queue_.push(vehicle_pose_);
-        // // }
+    //     std::cout << vehicle_poses_queue_.size() << std::endl;
+    //     // if(vehicle_poses_queue_.size() == 0u)
+    //     // {
+    //     //     // If pose queue empty add two extra poses
+    //     //     vehicle_poses_queue_.push(vehicle_pose_);
+    //     //     vehicle_poses_queue_.push(vehicle_pose_);
+    //     // }
         
-        // vehicle_poses_queue_.push(vehicle_pose_);
-        // std::cout << vehicle_poses_queue_.size() << std::endl; // should equal to 3 after this
-        // std::cout << "transform_cb: " << vehicle_pose_.pose.position.x << std::endl;
+    //     vehicle_poses_queue_.push(vehicle_pose_);
+    //     std::cout << vehicle_poses_queue_.size() << std::endl; // should equal to 3 after this
+    //     std::cout << "transform_cb: " << vehicle_pose_.pose.position.x << std::endl;
 
-        // // traversed_distance_since_update_ = find_2d_pose_distance(vehicle_pose_.pose, vehicle_pose_at_update_);
+    //     // traversed_distance_since_update_ = find_2d_pose_distance(vehicle_pose_.pose, vehicle_pose_at_update_);
 
-        curr_transform_updated_ = true;
-    }
-    catch(tf2::TransformException & ex)
-    {
-        ROS_WARN("%s",ex.what());
-    }
+    //     curr_transform_updated_ = true;
+    // }
+    // catch(tf2::TransformException & ex)
+    // {
+    //     ROS_WARN("%s",ex.what());
+    // }
 }
 
 void LocalizationNode::diviner_cb(const ros::TimerEvent & event)
 {
     // assert((void("Diviner is running when not supposed to."), localization_running));
+
     // Dropping the mtx lock for the moment
     // Would love to try getting this to run across multiple threads to try and decrease processing time
     // diviner_mtx_.lock();
@@ -672,6 +744,15 @@ void LocalizationNode::lidar_cb(const sensor_msgs::PointCloud2ConstPtr input_clo
     }
 
     current_scan_ = converter_->convert(input_cloud);
+
+    for(auto & processor : processors_)
+    {
+        if(ln_params_.lidar_cb_debug)
+        {
+            std::cout << "- lidar_cb: Processing scan with " << processor->getName() << std::endl;
+        }
+        processor->process(current_scan_);
+    }
     
     while(current_scan_ == nullptr)
     {
@@ -716,7 +797,7 @@ void LocalizationNode::gnss_cb(const diviner::GnssType gnss_pose)
     // or take sqrt(covariance) and check std deviation
     geometry_msgs::PoseWithCovarianceStamped covariance_pose;
     covariance_pose.pose.covariance = gnss_pose->pose.covariance;
-    switcher_->checkGPS(covariance_pose);
+    // switcher_->checkGPS(covariance_pose);
     
     geometry_msgs::PoseStamped vehicle_pose;
     geometry_msgs::PoseStamped map_vehicle_pose;
@@ -729,11 +810,11 @@ void LocalizationNode::gnss_cb(const diviner::GnssType gnss_pose)
         std::cout << "gnss_cb: Current number of queued poses: " << vehicle_poses_queue_.size() << std::endl;
     }
 
-    tf2::doTransform(vehicle_pose, map_vehicle_pose, base_link_to_cepton_);
+    // tf2::doTransform(vehicle_pose, map_vehicle_pose, base_link_to_cepton_);
     
     // why tf does tf2 remove the stamp????? I'm going to lose it...
-    map_vehicle_pose.header.stamp = vehicle_pose.header.stamp;
-    map_vehicle_pose.header.frame_id = ln_params_.cepton_frame;
+    // map_vehicle_pose.header.stamp = vehicle_pose.header.stamp;
+    // map_vehicle_pose.header.frame_id = ln_params_.cepton_frame;
 
     if(ln_params_.gnss_cb_debug)
     {
@@ -741,7 +822,7 @@ void LocalizationNode::gnss_cb(const diviner::GnssType gnss_pose)
     }
 
     // add to poses queue
-    vehicle_poses_queue_.push(map_vehicle_pose);
+    vehicle_poses_queue_.push(vehicle_pose);
     
     if(ln_params_.gnss_cb_debug)
     {

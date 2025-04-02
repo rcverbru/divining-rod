@@ -53,6 +53,7 @@ int main (int argc, char** argv)
 
     // Processor Params
     node->getParam("processors", ln_params.processors);
+    node->getParam("processor_debug", ln_params.processor_debug);
 
     // Vestimator Params
     node->getParam("vestimator", ln_params.vestimator);
@@ -63,7 +64,8 @@ int main (int argc, char** argv)
     node->getParam("converter_debug", ln_params.converter_debug);
 
     // Utils - Switcher
-    node->getParam("max_std_dev", ln_params.max_std_dev);
+    node->getParam("max_angle_std_dev", ln_params.max_angle_std_dev);
+    node->getParam("max_point_std_dev", ln_params.max_point_std_dev);
     node->getParam("switcher_debug", ln_params.switcher_debug);
 
     // Utils - Syncer

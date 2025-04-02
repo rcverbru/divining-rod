@@ -8,8 +8,7 @@
     <!--base_link frame has X+ going forward and Y+ going right. The gnss1 frame has Y+ going forward and X+ going right-->
     <!--The GNSS has a physical yaw displacement from base_link BUT, where we subscribe to /novatel/oem7/odom, the driver automatically
     rotates the frame to align with base_link to adhere with ROS standards-->
-    <!-- Original <node pkg="tf2_ros" type="static_transform_publisher" name="gnss1_to_base_link_tf" args="-0.08 0 -0.56 0 0 0 gnss1 base_link" /> -->
-    <node pkg="tf2_ros" type="static_transform_publisher" name="gnss1_to_base_link_tf" args="0.08 0 0.56 0 0 0 base_link gnss1" />
+    <node pkg="tf2_ros" type="static_transform_publisher" name="gnss1_to_base_link_tf" args="-0.08 0 -0.56 0 0 0 gnss1 base_link" />
     
     <!--vehicle_center frame has Y+ going forward and X+ going right-->
     <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_vehicle_center_tf" args="0.3 0 0 -1.5708 0 0 base_link vehicle_center" />
@@ -34,9 +33,6 @@
     <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="world_to_map" args ="277282.471 4686456.605 0 0 0 0 world map"/> -->
 
     <!-- Lot 24 -->
-    <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="world_to_map" args ="382504.445 5218475.187 0 0 0 0 world map"/> -->
-
-    <!-- Campus -->
-    <node pkg="tf2_ros" type="static_transform_publisher" name="world_to_map" args ="382630.99 5219557.92 0 0 0 0 world map"/>
+    <node pkg="tf2_ros" type="static_transform_publisher" name="world_to_map" args ="382504.445 5218475.187 0 0 0 0 world map"/>
     
 </launch>

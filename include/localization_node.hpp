@@ -30,10 +30,12 @@
 // #include <map/hash_map.hpp>
 // #include <map/kdtree_map.hpp>
 #include <map/octree_map.hpp>
+#include <map/voxel_map.hpp>
 
 // Preprocessor Includes
-#include <diviner/i_preprocessor.hpp>
+#include <preprocessors/i_preprocessor.hpp>
 #include <preprocessors/outlier.hpp>
+#include <preprocessors/transform.hpp>
 
 // Velocity Estimator Includes
 #include <diviner/i_vestimator.hpp>
@@ -53,6 +55,7 @@
 #include <geometry_msgs/PoseWithCovariance.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/transform_datatypes.h>
 #include <tf2/LinearMath/Quaternion.h>
@@ -134,29 +137,34 @@ ros::Time pcl_to_ros_time(uint64_t pcl_timestamp) {
 };
 
 inline
-void update_vehicle_pose(geometry_msgs::Pose & vehicle_pose, const geometry_msgs::TransformStamped & map_to_cepton, const geometry_msgs::TransformStamped & cepton_to_base_link)
+void update_vehicle_pose(geometry_msgs::Pose & pose_out, const geometry_msgs::TransformStamped & transform_in, const geometry_msgs::TransformStamped & frame)
 {
     // std::cout << "Incoming vehicle Pose: " << vehicle_pose << std::endl;
-    // std::cout << "Incoming transform: " << map_to_cepton << std::endl;
-    // std::cout << "Incoming cepton->base_link transform: " << cepton_to_base_link << std::endl;
+    // std::cout << "Incoming transform: " << transform_in << std::endl;
+    // std::cout << "Incoming cepton->base_link transform: " << frame << std::endl;
 
     static tf2::Transform map_to_cepton_tf, cepton_to_base_link_tf;
 
-    tf2::fromMsg(map_to_cepton.transform, map_to_cepton_tf);
-    tf2::fromMsg(cepton_to_base_link.transform, cepton_to_base_link_tf);
+    tf2::fromMsg(transform_in.transform, map_to_cepton_tf);
+    tf2::fromMsg(frame.transform, cepton_to_base_link_tf);
 
-    // std::cout << "tf info \nGnss->base_link" << cepton_to_base_link << std::endl;
+    // std::cout << "tf info \nGnss->base_link" << frame << std::endl;
     // std::cout << "map->gnss" << map_to_cepton_tf << std::endl;
-    // std::cout << "gnss->base_link" << cepton_to_base_link << std::endl;
+    // std::cout << "gnss->base_link" << frame << std::endl;
 
-    auto cepton_to_map_tf = map_to_cepton_tf.inverse(); // Location of map origin expressed in gnss frame
+    auto cepton_to_map_tf = map_to_cepton_tf; // Location of map origin expressed in gnss frame
     auto base_link_to_map_tf = cepton_to_base_link_tf * cepton_to_map_tf; // Location of map origin expressed in base_link frame
-    auto map_to_base_link_tf = base_link_to_map_tf.inverse(); // Location of base_link origin expressed in map frame
+    auto map_to_base_link_tf = base_link_to_map_tf; // Location of base_link origin expressed in map frame
+
+    // auto cepton_to_map_tf = map_to_cepton_tf.inverse(); // Location of map origin expressed in gnss frame
+    // auto base_link_to_map_tf = cepton_to_base_link_tf * cepton_to_map_tf; // Location of map origin expressed in base_link frame
+    // auto map_to_base_link_tf = base_link_to_map_tf.inverse(); // Location of base_link origin expressed in map frame
 
     auto map_to_base_link = tf2::toMsg(map_to_base_link_tf);
-    vehicle_pose.position.x = map_to_base_link.translation.x;
-    vehicle_pose.position.y = map_to_base_link.translation.y;
-    vehicle_pose.orientation = map_to_base_link.rotation;
+    pose_out.position.x = map_to_base_link.translation.x;
+    pose_out.position.y = map_to_base_link.translation.y;
+    pose_out.position.z = map_to_base_link.translation.z;
+    pose_out.orientation = map_to_base_link.rotation;
 };
 
 inline
@@ -166,6 +174,23 @@ tf2::Quaternion transform_to_tf2(geometry_msgs::Quaternion quaternion)
     tf2::fromMsg(quaternion, tf2_quaternion);
     return tf2_quaternion;
 };
+
+inline
+void zero_static_tf(std::shared_ptr<tf2_ros::StaticTransformBroadcaster> static_tf_br_, const std::string parent_frame, const std::string child_frame)
+{
+    geometry_msgs::TransformStamped static_transformStamped;
+    static_transformStamped.header.stamp = ros::Time::now();
+    static_transformStamped.header.frame_id = parent_frame;
+    static_transformStamped.child_frame_id = child_frame;
+    static_transformStamped.transform.translation.x = 0;
+    static_transformStamped.transform.translation.y = 0;
+    static_transformStamped.transform.translation.z = 0;
+    static_transformStamped.transform.rotation.x = 0;
+    static_transformStamped.transform.rotation.y = 0;
+    static_transformStamped.transform.rotation.z = 0;
+    static_transformStamped.transform.rotation.w = 1;
+    static_tf_br_->sendTransform(static_transformStamped);
+}
 
 struct LocalizationNodeParams
 {
@@ -191,6 +216,7 @@ struct LocalizationNodeParams
     bool lidar_cb_debug = false;
     bool gnss_cb_debug = false;
     bool topic_debug = false;
+    bool explicit_status = false;
 
     // TF Frames
     std::string world_frame = "world";
@@ -229,6 +255,7 @@ struct LocalizationNodeParams
     bool map_debug = false;
 
     std::vector<std::string> processors;
+    bool processor_debug = false;
 
     std::string vestimator; // Constant, wheel ticks, or IMU based
     bool vestimator_debug = false;
@@ -236,7 +263,8 @@ struct LocalizationNodeParams
     std::string point_type;
     bool converter_debug = false;
 
-    double max_std_dev = 0.1;
+    double max_angle_std_dev = 3.1 ;
+    double max_point_std_dev = 0.1;
     bool switcher_debug = false;
 
     double max_sync_err_s;
@@ -255,6 +283,7 @@ class LocalizationNode
         std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
         std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
         std::shared_ptr<tf2_ros::TransformBroadcaster> tf_br_;
+        std::shared_ptr<tf2_ros::StaticTransformBroadcaster> static_tf_br_;
 
         bool localization_running;
         bool gps_running;
@@ -286,16 +315,16 @@ class LocalizationNode
         ros::Timer vehicle_transform_timer_;
 
         // msg converter
-        std::shared_ptr<diviner::MsgConverter> converter_;
-        diviner::MsgConverterParams converter_params_;
+        std::shared_ptr<localization_node::MsgConverter> converter_;
+        localization_node::MsgConverterParams converter_params_;
 
         // Switcher
-        std::shared_ptr<diviner::Switcher> switcher_;
-        diviner::SwitcherParams switcher_params_;
+        std::shared_ptr<localization_node::Switcher> switcher_;
+        localization_node::SwitcherParams switcher_params_;
 
         // Syncer
-        std::shared_ptr<diviner::Syncer> syncer_;
-        diviner::SyncerParams syncer_params_;
+        std::shared_ptr<localization_node::Syncer> syncer_;
+        localization_node::SyncerParams syncer_params_;
         
         // Setup for interfaces
         std::shared_ptr<diviner::Diviner> diviner_;
@@ -303,6 +332,7 @@ class LocalizationNode
         std::shared_ptr<diviner::IFilter> filter_;
         std::shared_ptr<diviner::IDeskewer> deskewer_;
         std::shared_ptr<diviner::IMap> map_;
+        std::vector<std::shared_ptr<preprocessor::IPreprocessor>> processors_;
         std::shared_ptr<diviner::IVestimator> vestimator_;
 
         // Setup for params
@@ -315,7 +345,7 @@ class LocalizationNode
         
         // Deskewers
         diviner::Params<diviner::ExampleDeskewerParams, diviner::IDeskewerParams> example_deskewer_params_;
-        // diviner::Params<diviner::StandardDeskewerParams, diviner::IDeskewerParams> standard_deskewer_params_;
+        diviner::Params<diviner::StandardDeskewerParams, diviner::IDeskewerParams> standard_deskewer_params_;
 
         // Filters
         diviner::Params<diviner::ExampleFilterParams, diviner::IFilterParams> example_filter_params_;
@@ -326,9 +356,11 @@ class LocalizationNode
         // diviner::Params<diviner::HashMapParams, diviner::IMapParams> hash_map_params_;
         // diviner::Params<diviner::KdTreeMapParams, diviner::IMapParams> kdtree_map_params_;
         diviner::Params<diviner::OctreeMapParams, diviner::IMapParams> octree_map_params_;
+        diviner::Params<diviner::VoxelMapParams, diviner::IMapParams> voxel_map_params_;
         
         // Processors
-        diviner::Params<diviner::OutlierProcessorParams, diviner::IPreprocessorParams> outlier_processor_params_;
+        preprocessor::Params<preprocessor::OutlierProcessorParams, preprocessor::IPreprocessorParams> outlier_processor_params_;
+        preprocessor::Params<preprocessor::TransformProcessorParams,preprocessor::IPreprocessorParams> transform_processor_params_;
 
         // Vestimators
         diviner::Params<diviner::ExampleVestimatorParams, diviner::IVestimatorParams> example_vestimator_params_;
@@ -340,6 +372,7 @@ class LocalizationNode
         void explicit_cb(const ros::TimerEvent & event);
 
         // Transform Publisher
+        bool oneshot = true;
         geometry_msgs::TransformStamped transform_out;
         void updateTransforms(geometry_msgs::PoseStamped &vehicle_location);
 
@@ -351,6 +384,7 @@ class LocalizationNode
         geometry_msgs::TransformStamped gnss_to_cepton_;
         geometry_msgs::TransformStamped world_to_map_;
         geometry_msgs::TransformStamped base_link_to_map_stamped_;
+        geometry_msgs::TransformStamped map_to_odom_tf;
         std::queue<geometry_msgs::PoseStamped> vehicle_poses_queue_;
         bool curr_transform_updated_ = false;
         void transform_cb(const ros::TimerEvent & event);

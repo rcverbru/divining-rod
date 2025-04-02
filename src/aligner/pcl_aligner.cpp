@@ -188,9 +188,15 @@ void PclAligner::findTf()
     // set up tf to be passed to the broadcaster
 }
 
-void PclAligner::updatePoints(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, diviner::Alignment vehicle_alignment)
+void PclAligner::updatePoints(pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, geometry_msgs::PoseStamped prev_pose)
 {
-    // Zero map for easier aligning before next step
+    std::cout << "Points are being updated" << std::endl;
+    geometry_msgs::TransformStamped transform;
+    // need to convert pose stamped to transform for fancy reasons :)
+    pose_to_transform(prev_pose, transform);
+    
+    // Move point cloud to position of last known location
+    transform_point_cloud(transform, point_cloud);
 }
 
 void PclAligner::updateCurrPose(const geometry_msgs::Transform icp_alignment, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> veh_pose)

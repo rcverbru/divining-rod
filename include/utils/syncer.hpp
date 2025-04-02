@@ -16,7 +16,7 @@
 
 #include <queue>
 
-namespace diviner
+namespace localization_node
 {
 
 struct SyncerParams

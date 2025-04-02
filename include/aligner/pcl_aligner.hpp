@@ -6,11 +6,19 @@
 
 #include <pcl/registration/icp.h>
 #include <pcl/console/time.h>
+#include <pcl/common/transforms.h>
 
 #include <tf2/transform_datatypes.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/convert.h>
+
+#include <geometry_msgs/TransformStamped.h>
+#include <tf2_eigen/tf2_eigen.h>
+#include <Eigen/Geometry>
+
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
 
 #include <vector>
 #include <list>
@@ -18,15 +26,6 @@
 
 namespace diviner
 {
-
-struct PclAlignerParams
-{
-    std::string alignment_state = "automatic"; // set (use set iterations) or automatic (auto find alignment)
-    int num_iterations = 2;
-    int max_num_iterations = 10;
-    double convergence_criterion = 0.1;
-    bool debug = true;
-};
 
 inline
 void print4x4Matrix (const Eigen::Matrix4d & matrix)
@@ -118,6 +117,39 @@ tf2::Quaternion transform_to_tf2(geometry_msgs::Quaternion quaternion)
     return tf2_quaternion;
 }
 
+inline
+Eigen::Affine3f transform_stamped_to_eigen(const geometry_msgs::TransformStamped& transformStamped)
+{
+    Eigen::Affine3d transform = tf2::transformToEigen(transformStamped.transform);
+    return transform.cast<float>(); // Convert to float for PCL compatibility
+}
+
+inline
+void transform_point_cloud(const geometry_msgs::TransformStamped& transformStamped, pcl::PointCloud<diviner::PointStamped>::Ptr cloud)
+{
+    Eigen::Affine3f transform = transform_stamped_to_eigen(transformStamped);
+    pcl::transformPointCloud(*cloud, *cloud, transform);
+}
+
+inline
+void pose_to_transform(const geometry_msgs::PoseStamped prev_pose, geometry_msgs::TransformStamped transform)
+{
+    transform.header = prev_pose.header;
+    transform.transform.translation.x = prev_pose.pose.position.x;
+    transform.transform.translation.y = prev_pose.pose.position.y;
+    transform.transform.translation.z = prev_pose.pose.position.z;
+    transform.transform.rotation = prev_pose.pose.orientation;
+}
+
+struct PclAlignerParams
+{
+    std::string alignment_state = "automatic"; // set (use set iterations) or automatic (auto find alignment)
+    int num_iterations = 2;
+    int max_num_iterations = 10;
+    double convergence_criterion = 0.1;
+    bool debug = true;
+};
+
 class PclAligner : public IAligner
 {
     public:
@@ -153,10 +185,12 @@ class PclAligner : public IAligner
         /**
          * Takes in the translation and rotation matrix from alignment and updates the point cloud to match with the changes
          * 
-         * @param point_cloud_ pointer to filtered scan that needs to be transformed
-         * @param alignment translational and rotational matrix from aligner->align function
+         * @param point_cloud_ pointer to incoming scan. If we have a previous pose estimate we are going to update the scan location
+         * @param previous_pose previous pose
          */
-        void updatePoints(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, diviner::Alignment alignment) override;
+        void updatePoints(pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, geometry_msgs::PoseStamped previous_pose) override;
+
+        // void predictPointLocation(pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, const geometry_msgs::PoseStamped prev_pose, const std::vector<diviner::Velocity> velocity);
 
         /**
          * Takes in the rotation and translation vectors from icp and updates

@@ -13,7 +13,7 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
-namespace diviner
+namespace localization_node
 {
 
 struct MsgConverterParams

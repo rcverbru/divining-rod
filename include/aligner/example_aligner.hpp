@@ -47,7 +47,7 @@ class ExampleAligner : public IAligner
          * @param point_cloud_ pointer to filtered scan that needs to be transformed
          * @param alignment translational and rotational matrix from aligner->align function
          */
-        void updatePoints(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, diviner::Alignment alignment) override {};
+        void updatePoints(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, geometry_msgs::PoseStamped prev_pose) override {};
 
         /**
          * Takes in the rotation and translation vectors from icp and updates

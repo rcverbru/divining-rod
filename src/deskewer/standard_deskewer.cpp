@@ -20,7 +20,7 @@ void StandardDeskewer::deskew(pcl::PointCloud<diviner::PointStamped>::Ptr point_
     // }
     
     // Transfer deskewed_cloud back to main point_cloud pointer
-    point_cloud = deskewed_cloud;
+    // point_cloud = deskewed_cloud;
 }
 
 }

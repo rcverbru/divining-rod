@@ -2,7 +2,7 @@
 #define PREPROCESSORS__OUTLIER_HPP
 
 #include <diviner/utils/types.hpp>
-#include <diviner/i_preprocessor.hpp>
+#include <preprocessors/i_preprocessor.hpp>
 
 #include <pcl/filters/statistical_outlier_removal.h>
 
@@ -10,7 +10,7 @@
 #include <memory>
 #include <list>
 
-namespace diviner
+namespace preprocessor
 {
 
 struct OutlierProcessorParams
@@ -18,10 +18,12 @@ struct OutlierProcessorParams
     bool debug = false;
 };
 
-class OutlierProcessor
+class OutlierProcessor : public IPreprocessor
 {
     public:
-        explicit OutlierProcessor(const OutlierProcessorParams & params) : params_(params){};
+        explicit OutlierProcessor(const Params<OutlierProcessorParams, IPreprocessorParams> & params) : 
+            IPreprocessor(params.parent_params),
+            params_(params.child_params){};
         ~OutlierProcessor()=default;
 
         /**
@@ -31,6 +33,10 @@ class OutlierProcessor
          */
         void process(pcl::PointCloud<diviner::PointStamped>::Ptr input_cloud) override;
         
+        std::string getName() override
+        {
+            return "Outlier Processor";
+        }
 
     private:
         OutlierProcessorParams params_;

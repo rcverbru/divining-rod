@@ -11,7 +11,11 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
     {
         std::cout << "- diviner: Diviner is running in Debug mode" << std::endl;
     }
-    if(first_scan)
+    if(!first_scan)
+    {
+        aligner_->updatePoints(cloud, veh_pose->front());
+    }
+    else
     {
         // Start mapper location
         geometry_msgs::PoseStamped holder;
@@ -47,7 +51,8 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
 
     if(velocities.size() == 3)
     {
-        deskewer_->deskew(cloud, velocities);
+        // Commented out because causing errors
+        // deskewer_->deskew(cloud, velocities);
 
         if(debug_)
         {
@@ -101,6 +106,7 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
             << std::endl;
             std::cout << "- diviner: After aligner" << std::endl;
         }
+        // aligner_->updatePoints(cloud, alignment_holder);
     }
     else
     {
@@ -138,10 +144,13 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
     }
 
     // Remove points outside of a given radius
-    map_->trim_map();
+    if(!first_scan)
+    {
+        map_->trim_map();
+    }
     
     // Set up tf to be passed to the broadcaster
-    aligner_->updatePoints(cloud, vehicle_alignment);
+    // aligner_->updatePoints(cloud, vehicle_alignment);
 
     // Need to make a vehicle position prediction to compare to point cloud alignment
     // vestimator_->predict(pred_veh_pose); Maybe put as aligner?

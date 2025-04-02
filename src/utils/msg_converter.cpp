@@ -1,6 +1,6 @@
 #include <utils/msg_converter.hpp>
 
-namespace diviner
+namespace localization_node
 {
 
 pcl::PointCloud<diviner::PointStamped>::Ptr MsgConverter::convert(sensor_msgs::PointCloud2ConstPtr input_cloud)

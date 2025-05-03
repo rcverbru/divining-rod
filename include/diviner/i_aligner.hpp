@@ -43,7 +43,7 @@ class IAligner
          * @param point_cloud Pointer to the current scan
          * @return returns the translation and rotation matrix to match scan with map
          */
-        virtual geometry_msgs::Transform align(pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, std::shared_ptr<diviner::IMap> map_) = 0;
+        virtual AlignmentTuple align(pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, std::shared_ptr<diviner::IMap> map_) = 0;
 
         /**
          * Calculates transform for current position in the map frame
@@ -61,6 +61,11 @@ class IAligner
          * @param alignment alignment vector/matrix 
          */
         virtual void updatePoints(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, geometry_msgs::PoseStamped prev_pose) = 0;
+
+        /**
+         * 
+         */
+         virtual void predictPointLocation(pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, const geometry_msgs::PoseStamped prev_pose, const std::vector<diviner::Velocity> velocity) = 0;
 
         /**
          * Takes in the rotation and translation vectors from icp and updates

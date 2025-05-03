@@ -33,7 +33,7 @@ class ExampleAligner : public IAligner
          */
         void initialize(std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> veh_pose) override {};
 
-        geometry_msgs::Transform align(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, std::shared_ptr<diviner::IMap> map_) override;
+        AlignmentTuple align(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, std::shared_ptr<diviner::IMap> map_) override;
 
         /**
          * 
@@ -48,6 +48,11 @@ class ExampleAligner : public IAligner
          * @param alignment translational and rotational matrix from aligner->align function
          */
         void updatePoints(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, geometry_msgs::PoseStamped prev_pose) override {};
+
+        /**
+         * 
+         */
+         void predictPointLocation(pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, const geometry_msgs::PoseStamped prev_pose, const std::vector<diviner::Velocity> velocity) override {};
 
         /**
          * Takes in the rotation and translation vectors from icp and updates

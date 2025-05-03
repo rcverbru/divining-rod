@@ -31,6 +31,9 @@ class VoxelFilter : public IFilter
 
     private:
         VoxelFilterParams params_;
+
+        float leaf_size;
+        bool first_run = true;
 };
 
 }

@@ -7,12 +7,20 @@ namespace diviner
 
 void VoxelFilter::filter(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud)
 {
-    // Create a container for the data.
-    //for(auto &size : params_.leaf_size)
+    if(first_run)
+    {
+        // std::cout << "  - filter: First run" << std::endl;
+        leaf_size = params_.leaf_size[0];
 
-    auto &size = params_.leaf_size[0];
-    
-    float leaf_size = size;
+        first_run = false;
+    }
+    else
+    {
+        // std::cout << "  - filter: Second run" << std::endl;
+        leaf_size = params_.leaf_size[1];
+
+        first_run = true;
+    }
 
     // std::vector<float> leaf_size = params_.leaf_size;
     if(params_.debug)

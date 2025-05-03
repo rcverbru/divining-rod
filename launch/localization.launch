@@ -18,7 +18,7 @@
     <arg name="topic_debug" default="false"/>
 
     <!-- Diviner -->
-    <arg name="diviner_debug" default="false"/>
+    <arg name="diviner_debug" default="true"/>
 
     <!-- Aligners -->
     <arg name="aligner" default="pclaligner"/>

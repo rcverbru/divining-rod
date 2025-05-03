@@ -32,6 +32,7 @@ class Syncer
         explicit Syncer(const SyncerParams & params) : params_(params){};
         ~Syncer() = default;
         
+        //Function to sync lidar and gps messages based on timestamp
         diviner::SyncedMsgs sync(std::queue<pcl::PointCloud<diviner::PointStamped>> &cloud_, std::queue<geometry_msgs::PoseStamped> &vehicle_poses_queue_);
     
     private:

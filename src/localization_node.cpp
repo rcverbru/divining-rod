@@ -347,7 +347,7 @@ LocalizationNode::LocalizationNode(
     {
         ROS_INFO_NAMED(localization_node::LOCALIZATION_NODE, "Starting up...");
         diviner_ = std::make_shared<diviner::Diviner>(aligner_, filter_, deskewer_, map_, vestimator_, ln_params_.diviner_debug);
-        
+
         // Set current scan
         pcl::PointCloud<diviner::PointStamped>::Ptr current_scan_ = 
         pcl::PointCloud<diviner::PointStamped>::Ptr(new pcl::PointCloud<diviner::PointStamped>);
@@ -645,6 +645,7 @@ void LocalizationNode::diviner_cb(const ros::TimerEvent & event)
             if(map_ != nullptr)
             {
                 std::cout << "diviner_cb: Map size: " << map_->capacity() << std::endl;
+                pcl::io::savePCDFileASCII ("/home/rcv/dev/rse/localization_ws/localization_node_before.pcd", *(synced_queue_.front().cloud));
 
                 // might need to move this somewhere else depending how well this works...
                 std::cout << "diviner_cb: Starting Diviner Step." << std::endl;
@@ -682,15 +683,40 @@ void LocalizationNode::diviner_cb(const ros::TimerEvent & event)
                 gps_prev_path.poses.push_back(synced_queue_.front().gps);
                 gps_prev_path.header.frame_id = ln_params_.map_frame;
 
-                sensor_msgs::PointCloud2 output;
+                sensor_msgs::PointCloud2 output, debug_pc;
                 pcl::toROSMsg(*map_->get_data(), output);
                 output.header.frame_id = ln_params_.odom_frame;
                 localization_map_pub_.publish(output);
                 path_pub_.publish(est_prev_path);
                 pose_pub_.publish(veh_pose->front());
                 gps_pub_.publish(synced_queue_.front().gps);
+                
+                pcl::io::savePCDFileASCII ("/home/rcv/dev/rse/localization_ws/localization_node_after.pcd", *(synced_queue_.front().cloud));
+                
+                // std::cout << "synced cloud after step: " << *(synced_queue_.front().cloud) << std::endl;
+                // pcl::toROSMsg(*(synced_queue_.front().cloud), debug_pc);
+                // voxel_pub_.publish(debug_pc);
 
                 synced_queue_.pop();
+
+                // Trying to increase time gap between diviner steps
+                // may give us a better idea of alignment jumps
+                if(synced_queue_.size() > 8)
+                {
+                    std::cout << "\ndiviner_cb: Popping 8 messages from synced queue.\n" << std::endl;
+                    synced_queue_.pop();
+                    synced_queue_.pop();
+                    synced_queue_.pop();
+                    synced_queue_.pop();
+                    synced_queue_.pop();
+                    synced_queue_.pop();
+                    synced_queue_.pop();
+                    synced_queue_.pop();
+                }
+                else
+                {
+                    std::cout << "\ndiviner_cb: Not enough messages in queue to pop 8.\n" << std::endl;
+                }
 
                 if(ln_params_.topic_debug)
                 {

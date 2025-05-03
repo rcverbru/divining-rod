@@ -31,7 +31,7 @@ class OutlierProcessor : public IPreprocessor
          *
          * @param input_cloud input cloud to process
          */
-        void process(pcl::PointCloud<diviner::PointStamped>::Ptr input_cloud) override;
+        void process(pcl::PointCloud<diviner::PointStamped>::Ptr input_cloud);
         
         std::string getName() override
         {

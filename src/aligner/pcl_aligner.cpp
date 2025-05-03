@@ -1,5 +1,8 @@
 #include <aligner/pcl_aligner.hpp>
 
+#include <pcl/io/pcd_io.h>
+#include <iostream>
+
 namespace diviner
 {
 
@@ -55,7 +58,7 @@ void PclAligner::initialize(std::shared_ptr<std::vector<geometry_msgs::PoseStamp
     }
 }
 
-geometry_msgs::Transform PclAligner::align(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud_, std::shared_ptr<diviner::IMap> map_)
+AlignmentTuple PclAligner::align(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud_, std::shared_ptr<diviner::IMap> map_)
 {
     // The Iterative Closest Point algorithm
     // pulled from pcl icp tutorial...
@@ -68,10 +71,16 @@ geometry_msgs::Transform PclAligner::align(const pcl::PointCloud<diviner::PointS
         std::cout << "  - aligner: Point Cloud Size = " << point_cloud_->size() << std::endl;
     }
 
+    std::cout << "  - aligner: Saving updated scan PCD" << std::endl;
+    pcl::io::savePCDFileASCII ("/home/rcv/dev/rse/localization_ws/start_pcd.pcd", *point_cloud_);
+
     if(params_.alignment_state == "set")
     {
         // Set static number of iterations
         icp.setMaximumIterations(params_.num_iterations);
+        // icp.setEuclideanFitnessEpsilon(params_.euc_fit_epsilon);
+        // icp.setTransformationEpsilon(params_.transform_epsilon);
+        // icp.setMaxCorrespondenceDistance(params_.corr_dist);
         icp.setInputSource(point_cloud_);
         icp.setInputTarget(map_->get_data());
         icp.align(*point_cloud_);
@@ -170,6 +179,8 @@ geometry_msgs::Transform PclAligner::align(const pcl::PointCloud<diviner::PointS
         PCL_ERROR("\nAligner run state not set.\n");
     }
 
+    // pcl::transformPointCloud (*point_cloud_, *point_cloud_, transformation_matrix);
+
     geometry_msgs::Transform transform = matrix_to_transform(transformation_matrix);
 
     if(params_.debug)
@@ -180,7 +191,14 @@ geometry_msgs::Transform PclAligner::align(const pcl::PointCloud<diviner::PointS
         << std::endl;    
     }
 
-    return transform;
+    std::cout << "  - aligner: Saving updated scan PCD" << std::endl;
+    pcl::io::savePCDFileASCII ("/home/rcv/dev/rse/localization_ws/final_pcd.pcd", *point_cloud_);
+    pcl::io::savePCDFileASCII ("/home/rcv/dev/rse/localization_ws/map_pcd.pcd", *map_->get_data());
+
+    diviner::AlignmentStats stats;
+    stats.correspondence = icp.getFitnessScore();
+    stats.target_threshold = params_.convergence_criterion;
+    return std::make_tuple(transform, stats);
 }
 
 void PclAligner::findTf()
@@ -190,12 +208,28 @@ void PclAligner::findTf()
 
 void PclAligner::updatePoints(pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, geometry_msgs::PoseStamped prev_pose)
 {
-    std::cout << "Points are being updated" << std::endl;
+    std::cout << "  - aligner: Points are being updated" << std::endl;
     geometry_msgs::TransformStamped transform;
     // need to convert pose stamped to transform for fancy reasons :)
     pose_to_transform(prev_pose, transform);
     
     // Move point cloud to position of last known location
+    transform_point_cloud(transform, point_cloud);
+}
+
+void PclAligner::predictPointLocation(pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, const geometry_msgs::PoseStamped prev_pose, const std::vector<diviner::Velocity> velocity)
+{
+    geometry_msgs::PoseStamped predicted_pose;
+    geometry_msgs::TransformStamped transform;
+
+    double time_delta = 0.1; // seconds
+
+    // Calculate predicted pose based off of previous pose and velocity
+    predicted_pose.pose.position.x = prev_pose.pose.position.x + (velocity[0].linear.x * time_delta);
+    predicted_pose.pose.position.y = prev_pose.pose.position.y + (velocity[0].linear.y * time_delta);
+    predicted_pose.pose.position.z = prev_pose.pose.position.z + (velocity[0].linear.z * time_delta);
+
+    pose_to_transform(predicted_pose, transform);
     transform_point_cloud(transform, point_cloud);
 }
 
@@ -241,7 +275,7 @@ void PclAligner::updateCurrPose(const geometry_msgs::Transform icp_alignment, st
 
     new_pose.pose.position.x = previous_pose.pose.position.x + icp_alignment.translation.x;
     new_pose.pose.position.y = previous_pose.pose.position.y + icp_alignment.translation.y;
-    new_pose.pose.position.z = previous_pose.pose.position.z + icp_alignment.translation.z;
+    new_pose.pose.position.z = 0;
 
     if(previous_pose.pose.orientation.x == 0 && previous_pose.pose.orientation.y == 0 && previous_pose.pose.orientation.z == 0 && previous_pose.pose.orientation.w == 1)
     {

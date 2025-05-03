@@ -66,6 +66,8 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+#include <pcl/io/pcd_io.h>
+#include <iostream>
 
 // GNSS
 #include <novatel_oem7_msgs/BESTGNSSPOS.h>

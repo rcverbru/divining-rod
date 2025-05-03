@@ -2,18 +2,30 @@
 
 #include <vector>
 
+#include <pcl/io/pcd_io.h>
+#include <iostream>
+
 namespace diviner
 {
 
 void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_msgs::TransformStamped gnss_to_map_, geometry_msgs::TransformStamped cloud_to_vehicle, std::shared_ptr<std::vector<geometry_msgs::PoseStamped>> &veh_pose)
 {
+    pcl::io::savePCDFileASCII ("/home/rcv/dev/rse/localization_ws/start_of_step_pcd.pcd", *cloud);
     if(debug_)
     {
         std::cout << "- diviner: Diviner is running in Debug mode" << std::endl;
     }
     if(!first_scan)
     {
-        aligner_->updatePoints(cloud, veh_pose->front());
+        // if(velocities.size() == 1)
+        // {
+        //     aligner_->predictPointLocation(cloud, veh_pose->front(), velocities);
+        // }
+        // else
+        // {
+            std::cout << veh_pose->front() << std::endl;
+            aligner_->updatePoints(cloud, veh_pose->front());
+        // }
     }
     else
     {
@@ -93,10 +105,20 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
         std::cout << "- diviner: After filters" << std::endl;        
     }
 
+    diviner::AlignmentStats stat;
+    geometry_msgs::Transform alignment;
+
     if(!first_scan)
     {
         // Align the points to the map inorder figure out the location
-        alignment_holder = aligner_->align(cloud, map_);
+        const auto &[alignment_holder, stats] = aligner_->align(cloud, map_);
+
+        stat = stats;
+        alignment = alignment_holder;
+
+        std::cout << "  - diviner: Saving updated scan PCD" << std::endl;
+        pcl::io::savePCDFileASCII ("/home/rcv/dev/rse/localization_ws/diviner_pcd.pcd", *cloud);
+        pcl::io::savePCDFileASCII ("/home/rcv/dev/rse/localization_ws/diviner_map_pcd.pcd", *map_->get_data());
 
         if(debug_)
         {
@@ -106,7 +128,9 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
             << std::endl;
             std::cout << "- diviner: After aligner" << std::endl;
         }
-        // aligner_->updatePoints(cloud, alignment_holder);
+        
+        // TODO: Inverse pointcloud transform to put into odom frame
+        // aligner_->updat(cloud, veh_pose->front());
     }
     else
     {
@@ -128,7 +152,7 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
     // blender_->smoothie();
 
     // Update our current position 
-    aligner_->updateCurrPose(alignment_holder, veh_pose);
+    aligner_->updateCurrPose(alignment, veh_pose);
 
     if(debug_)
     {
@@ -136,7 +160,7 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
     }
 
     // Set up car tf to publish to tf topic
-    aligner_->findTf();
+    // aligner_->findTf();
 
     if(debug_)
     {
@@ -146,14 +170,8 @@ void Diviner::step(pcl::PointCloud<diviner::PointStamped>::Ptr cloud, geometry_m
     // Remove points outside of a given radius
     if(!first_scan)
     {
-        map_->trim_map();
+        // map_->trim_map();
     }
-    
-    // Set up tf to be passed to the broadcaster
-    // aligner_->updatePoints(cloud, vehicle_alignment);
-
-    // Need to make a vehicle position prediction to compare to point cloud alignment
-    // vestimator_->predict(pred_veh_pose); Maybe put as aligner?
 
     // Set up for next step
     first_scan = false;

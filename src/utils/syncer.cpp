@@ -2,7 +2,7 @@
 
 /*
 GPS: 20 Hz -> vehicle_poses_queue_
-Lidar: 10 Hz -> cloud
+Lidar: 10 Hz -> cloud_queue_
 */
 
 namespace localization_node

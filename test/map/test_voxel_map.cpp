@@ -1,38 +1,46 @@
 #include <gtest/gtest.h>
-#include <map/octree_map.hpp>
 
-class TestOctreeMap : public ::testing::Test {
-protected:
-    diviner::Params<diviner::OctreeMapParams, diviner::IMapParams> params;
-    std::shared_ptr<diviner::ConstantVestimator> octree_map;
- 
-    pcl::PointCloud<diviner::PointStamped>::Ptr cloud =
-    pcl::PointCloud<diviner::PointStamped>::Ptr(new pcl::PointCloud<diviner::PointStamped>);
+#include <map/voxel_map.hpp>
 
-    pcl::PointCloud<diviner::PointStamped>::Ptr output =
-    pcl::PointCloud<diviner::PointStamped>::Ptr(new pcl::PointCloud<diviner::PointStamped>);
+class TestVoxelMap : public ::testing::Test
+{
+    protected:
+        diviner::Params<diviner::VoxelMapParams, diviner::IMapParams> voxel_map_params_;
+
+        std::shared_ptr<diviner::VoxelMap> map_;
+
+        pcl::PointCloud<diviner::PointStamped>::Ptr cloud =
+        pcl::PointCloud<diviner::PointStamped>::Ptr(new pcl::PointCloud<diviner::PointStamped>);
+
+        pcl::PointCloud<diviner::PointStamped>::Ptr output =
+        pcl::PointCloud<diviner::PointStamped>::Ptr(new pcl::PointCloud<diviner::PointStamped>);
 
     void SetUp() override
     {
-        params.parent_params.debug = true;
-        params.child_params.debug = true;
-        map_ = std::make_shared<diviner::OctreeMap>(params);
+        voxel_map_params_.parent_params.debug = true;
+        voxel_map_params_.child_params.debug = true;
+
+        map_ = std::make_shared<diviner::VoxelMap>(voxel_map_params_);
+
+
     }
 
-    void TearDown() override {
-        if (octree_map != nullptr) {
+    void TearDown() override
+    {
+        if(map_ != nullptr)
+        {
             map_->clear_map();
             map_.reset();
         }
     }
 };
 
-TEST_F(TestOctreeMap, test_map_initialize)
+TEST_F(TestVoxelMap, test_map_initialize)
 {
     // do it start?
 }
 
-TestF(TestOctreeMap, test_map_add_single_cloud)
+TEST_F(TestVoxelMap, test_map_add_single_cloud)
 {
     std::string scan_file = "/localization_ws/src/localization/test/map/monkey.pcd";
 
@@ -124,6 +132,10 @@ TEST_F(TestVoxelMap, test_map_get_data)
     EXPECT_TRUE(output->size() == expected_map->size());
 }
 
+// Apply transform function not used in code
+// Should probably remove this down the line from all map interfaces
+// TEST_F(TestVoxelMap, test_map_apply_transform)
+
 TEST_F(TestVoxelMap, test_map_clear_map)
 {
     map_->clear_map();
@@ -131,7 +143,9 @@ TEST_F(TestVoxelMap, test_map_clear_map)
     EXPECT_TRUE(map_->size() == 0);
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
     ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+    int ret = RUN_ALL_TESTS();
+    return ret;
 }

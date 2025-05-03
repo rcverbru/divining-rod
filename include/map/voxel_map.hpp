@@ -15,7 +15,7 @@ namespace diviner
 
 struct VoxelMapParams
 {
-    std::string voxel_frame = "cepton2";
+    std::string voxel_map_frame = "base_link";
     double min_points_per_voxel = 1;
     double voxel_size = 0.25;
     double max_distance = 40;
@@ -30,7 +30,7 @@ class VoxelMap : public IMap
         IMap(params.parent_params),
         params_(params.child_params){
             local_map_pointcloud = boost::make_shared<pcl::PointCloud<diviner::PointStamped>>();
-            local_map_pointcloud->header.frame_id = params_.voxel_frame;
+            local_map_pointcloud->header.frame_id = params_.voxel_map_frame;
         };
         ~VoxelMap()
         {

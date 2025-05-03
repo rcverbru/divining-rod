@@ -8,6 +8,7 @@
 
 // TF shtuff
 #include <geometry_msgs/TransformStamped.h>
+#include <geometry_msgs/Transform.h>
 #include <geometry_msgs/Twist.h>
 
 // PCL
@@ -24,6 +25,7 @@
 
 // Other includes
 #include <cmath>
+#include <tuple>
 #include <geometry_msgs/PoseStamped.h>
 
 struct EIGEN_ALIGN16 Point
@@ -69,6 +71,21 @@ struct CeptonPoint
     uint8_t channel_id;
     uint8_t valid;
 };
+
+struct AlignmentStats
+{
+    float correspondence;
+    float target_threshold;
+};
+
+struct AlignmentInfo
+{
+    geometry_msgs::Transform alignment;
+    diviner::AlignmentStats stats;
+};
+
+// Can remove this once we switch to the AlignmentInfo data
+using AlignmentTuple = std::tuple<geometry_msgs::Transform, AlignmentStats>;
 
 //
 template<typename CHILD_PARAMS, typename PARENT_PARAMS>

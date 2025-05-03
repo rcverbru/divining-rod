@@ -128,11 +128,13 @@ inline
 void transform_point_cloud(const geometry_msgs::TransformStamped& transformStamped, pcl::PointCloud<diviner::PointStamped>::Ptr cloud)
 {
     Eigen::Affine3f transform = transform_stamped_to_eigen(transformStamped);
+    // std::cout << transform << std::endl;
+    std::cout << "transform cloud geometry_msgs" << transformStamped << std::endl;
     pcl::transformPointCloud(*cloud, *cloud, transform);
 }
 
 inline
-void pose_to_transform(const geometry_msgs::PoseStamped prev_pose, geometry_msgs::TransformStamped transform)
+void pose_to_transform(const geometry_msgs::PoseStamped prev_pose, geometry_msgs::TransformStamped &transform)
 {
     transform.header = prev_pose.header;
     transform.transform.translation.x = prev_pose.pose.position.x;
@@ -143,10 +145,13 @@ void pose_to_transform(const geometry_msgs::PoseStamped prev_pose, geometry_msgs
 
 struct PclAlignerParams
 {
-    std::string alignment_state = "automatic"; // set (use set iterations) or automatic (auto find alignment)
-    int num_iterations = 2;
-    int max_num_iterations = 10;
-    double convergence_criterion = 0.1;
+    std::string alignment_state = "set"; // set (use set iterations) or automatic (auto find alignment)
+    int num_iterations = 10;
+    float euc_fit_epsilon = 0.5;
+    float transform_epsilon = 0.00000001;
+    float corr_dist = 0.5;
+    int max_num_iterations = 50;
+    double convergence_criterion = 0.0001;
     bool debug = true;
 };
 
@@ -174,7 +179,7 @@ class PclAligner : public IAligner
          * @param map_ pointer to local_map
          * @return nuthin currently. may need to return alignment information
          */
-        geometry_msgs::Transform align(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, std::shared_ptr<diviner::IMap> map_) override;
+        AlignmentTuple align(const pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, std::shared_ptr<diviner::IMap> map_) override;
 
         /**
          * 
@@ -190,7 +195,10 @@ class PclAligner : public IAligner
          */
         void updatePoints(pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, geometry_msgs::PoseStamped previous_pose) override;
 
-        // void predictPointLocation(pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, const geometry_msgs::PoseStamped prev_pose, const std::vector<diviner::Velocity> velocity);
+        /**
+         * 
+         */
+        void predictPointLocation(pcl::PointCloud<diviner::PointStamped>::Ptr point_cloud, const geometry_msgs::PoseStamped prev_pose, const std::vector<diviner::Velocity> velocity) override;
 
         /**
          * Takes in the rotation and translation vectors from icp and updates
